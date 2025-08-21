@@ -1,0 +1,130 @@
+<div class="flex justify-content-center p-4">
+  <div class="col-12 md:col-8 lg:col-6">
+    <p-card header="Create New Artist" styleClass="shadow-2">
+      <form (ngSubmit)="onSubmit()" #artistForm="ngForm" class="p-fluid">
+        
+        <!-- Artist Name -->
+        <div class="field mb-4">
+          <label for="name" class="font-semibold">Artist Name *</label>
+          <input 
+            pInputText 
+            id="name"
+            name="name"
+            [(ngModel)]="artist.name"
+            required
+            minlength="2"
+            maxlength="100"
+            placeholder="Enter artist name"
+            class="w-full mt-2"
+            [class.ng-invalid]="nameInput.invalid && nameInput.touched"
+            #nameInput="ngModel"
+          />
+          <small 
+            class="p-error block mt-1" 
+            *ngIf="nameInput.invalid && nameInput.touched"
+          >
+            Artist name is required (2-100 characters)
+          </small>
+        </div>
+
+        <!-- Biography -->
+        <div class="field mb-4">
+          <label for="biography" class="font-semibold">Biography *</label>
+          <textarea 
+            pTextarea
+            id="biography"
+            name="biography"
+            [(ngModel)]="artist.biography"
+            required
+            minlength="10"
+            maxlength="2000"
+            rows="6"
+            placeholder="Enter artist biography (minimum 10 characters)"
+            class="w-full mt-2"
+            [class.ng-invalid]="biographyInput.invalid && biographyInput.touched"
+            #biographyInput="ngModel"
+          ></textarea>
+          <small 
+            class="p-error block mt-1" 
+            *ngIf="biographyInput.invalid && biographyInput.touched"
+          >
+            Biography is required (10-2000 characters)
+          </small>
+          <small class="text-500 block mt-1">
+            {{ artist.biography.length }}/2000 characters
+          </small>
+        </div>
+
+        <!-- Genres -->
+        <div class="field mb-4">
+          <label for="genres" class="font-semibold">Genres *</label>
+          
+          <!-- Genre Input -->
+          <input 
+            pInputText
+            id="genres"
+            name="genreInput"
+            [(ngModel)]="genreInput"
+            placeholder="Type genre and press Enter, Tab, or comma to add"
+            class="w-full mt-2"
+            (keydown)="onGenreInputKeydown($event)"
+            (blur)="onGenreInputBlur()"
+          />
+          
+          <!-- Display Added Genres -->
+          <div class="flex flex-wrap gap-2 mt-3" *ngIf="artist.genres.length > 0">
+            <p-chip 
+              *ngFor="let genre of artist.genres; let i = index"
+              [label]="genre"
+              [removable]="true"
+              (onRemove)="removeGenre(i)"
+              styleClass="p-chip-outlined"
+            ></p-chip>
+          </div>
+          
+          <small 
+            class="p-error block mt-1" 
+            *ngIf="artist.genres.length === 0 && nameInput.touched"
+          >
+            At least one genre is required
+          </small>
+          <small class="text-500 block mt-1">
+            Press Enter, Tab, or comma to add multiple genres. Examples: rock, pop, jazz, electronic
+          </small>
+          <small class="text-500 block mt-1">
+            Selected: {{ artist.genres.length }} genre(s)
+          </small>
+        </div>
+
+        <!-- Error Messages -->
+        <p-message 
+          *ngIf="errorMessage" 
+          severity="error" 
+          styleClass="mb-4"
+          [text]="errorMessage"
+        ></p-message>
+
+        <!-- Buttons -->
+        <div class="flex gap-2 justify-content-end mt-4">
+          <p-button 
+            label="Cancel" 
+            icon="pi pi-times" 
+            severity="secondary"
+            (onClick)="onCancel()"
+            [disabled]="isLoading"
+          ></p-button>
+          
+          <p-button 
+            label="Create Artist" 
+            icon="pi pi-plus"
+            type="submit"
+            [disabled]="artistForm.invalid || isLoading || artist.genres.length === 0"
+            [loading]="isLoading"
+          ></p-button>
+        </div>
+      </form>
+    </p-card>
+  </div>
+</div>
+
+<p-toast></p-toast>
