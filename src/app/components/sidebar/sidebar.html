@@ -1,0 +1,31 @@
+<div class="h-screen w-2 bg-surface-50 fixed shadow-2 flex flex-column">
+    <!-- User Profile Section -->
+    <div class="p-4 border-bottom-1 surface-border">
+        <div class="flex flex-column text-center">
+
+            <div class="text-900 font-semibold text-xl mb-2">
+                {{user?.firstName}} {{user?.lastName}}
+            </div>
+
+            <div class="text-600 text-sm">
+                &#64;{{user?.username}}
+            </div>
+
+        </div>
+    </div>
+
+    @if (user?.role == 'admin'){
+    <p-button styleClass="w-full justify-content-left pl-3 h-3rem mb-2" [text]="true"
+        [routerLink]="'/dashboard/view-artists'">
+        <ng-template pTemplate="content">
+            <span class="text-3xl">Artists</span>
+        </ng-template>
+    </p-button>
+    }
+
+    <div class="p-4 border-top-1 surface-border mt-auto">
+        <p-button label="Logout" icon="pi pi-sign-out" styleClass="w-full" severity="secondary" (onClick)="logout()">
+        </p-button>
+    </div>
+
+</div>

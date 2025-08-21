@@ -40,7 +40,7 @@ export class Login implements OnInit, OnDestroy {
   isLoading = false;
   returnUrl = 'dashboard';
   currentYear = new Date().getFullYear();
-  
+
   private destroy$ = new Subject<void>();
 
   constructor(
@@ -99,7 +99,13 @@ export class Login implements OnInit, OnDestroy {
       .subscribe({
         next: (response) => {
           this.isLoading = false;
-          this.router.navigate([this.returnUrl]);
+          if (this.authService.isAdmin()) {
+            this.router.navigate([this.returnUrl + '/view-artists']);
+          }
+          else {
+            this.router.navigate([this.returnUrl]);
+
+          }
         },
         error: (error) => {
           this.handleLoginError(error);

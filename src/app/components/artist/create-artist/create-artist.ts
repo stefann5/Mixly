@@ -81,7 +81,7 @@ export class CreateArtist implements OnInit {
 
         // Navigate to artists list after short delay
         setTimeout(() => {
-          this.router.navigate(['/artists']);
+          this.router.navigate(['dashboard/view-artists']);
         }, 1500);
       },
       error: (error) => {
@@ -102,7 +102,7 @@ export class CreateArtist implements OnInit {
   }
 
   onCancel(): void {
-    this.router.navigate(['/artists']);
+    this.router.navigate(['dashboard/view-artists']);
   }
 
   onGenreInputKeydown(event: KeyboardEvent): void {

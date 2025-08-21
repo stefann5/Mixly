@@ -1,2 +1,9 @@
-<p>dashboard works!</p>
-<p-button (onClick)="navigateToArtists()">View Artists</p-button>
+<div class="dashboard-layout">
+    <app-sidebar></app-sidebar>
+  <!-- <p-button (onClick)="navigateToArtists()">View Artists</p-button> -->
+
+  
+  <div class="dashboard-content">
+    <router-outlet></router-outlet> <!-- This renders dashboard child routes -->
+  </div>
+</div>
