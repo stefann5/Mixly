@@ -19,9 +19,7 @@ export class AuthInterceptor implements HttpInterceptor {
   private readonly excludedUrls = [
     '/auth/login',
     '/auth/register',
-    '/auth/refresh',
-    '/auth/forgot-password',
-    '/auth/reset-password'
+    '/auth/refresh'
   ];
 
   constructor(private authService: AuthService) {}
@@ -92,6 +90,7 @@ export class AuthInterceptor implements HttpInterceptor {
     if (!this.isRefreshing) {
       this.isRefreshing = true;
       this.refreshTokenSubject.next(null);
+      console.log('trying to refresh token');
 
       // Check if we should attempt token refresh
       if (this.authService.getRefreshToken()) {

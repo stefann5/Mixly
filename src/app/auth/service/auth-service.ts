@@ -135,10 +135,10 @@ export class AuthService {
   private handleLoginSuccess(response: LoginResponse): void {
     // Store tokens
     localStorage.setItem(this.TOKEN_KEY, JSON.stringify(response.tokens));
-    
+
     // Store user data
     localStorage.setItem(this.USER_KEY, JSON.stringify(response.user));
-    
+
     // Update subjects
     this.currentUserSubject.next(response.user);
     this.isAuthenticatedSubject.next(true);
@@ -274,7 +274,7 @@ export class AuthService {
    */
   refreshTokens(): Observable<LoginResponse['tokens']> {
     const refreshToken = this.getRefreshToken();
-    
+    console.log(refreshToken);
     if (!refreshToken) {
       return throwError(() => new Error('No refresh token available'));
     }
