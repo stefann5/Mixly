@@ -5,6 +5,7 @@ import { Register } from './components/register/register';
 import { AuthGuard } from './auth/guard/auth-guard';
 import { ViewArtists } from './components/artist/view-artist/view-artist';
 import { CreateArtist } from './components/artist/create-artist/create-artist';
+import { SubscriptionsComponent } from './components/subscriptions/subscriptions/subscriptions';
 
 export const routes: Routes = [
     {
@@ -35,6 +36,13 @@ export const routes: Routes = [
         component: CreateArtist,
         title: 'Create Artist',
         canActivate: [AuthGuard],
+        // data: { role: 'admin' } // Uncomment if you want route-level admin check
+    },
+    {
+        path: 'subscriptions',
+        component: SubscriptionsComponent,
+        title: 'Subscriptions',
+        //canActivate: [AuthGuard],
         // data: { role: 'admin' } // Uncomment if you want route-level admin check
     },
     // Redirect any unknown routes to login

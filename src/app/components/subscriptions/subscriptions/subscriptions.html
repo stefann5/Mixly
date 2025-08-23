@@ -1,0 +1,60 @@
+<div class="p-4">
+  
+  <!-- Header -->
+  <div class="flex justify-content-between align-items-center mb-4">
+    <h1 class="text-3xl font-bold m-0">My Subscriptions</h1>
+  </div>
+
+  <!-- Loading State -->
+  <div class="flex justify-content-center align-items-center" style="min-height: 200px" *ngIf="isLoading && subscriptions.length === 0">
+    <p-progressSpinner strokeWidth="3"></p-progressSpinner>
+  </div>
+
+  <!-- Error State -->
+  <p-message 
+    *ngIf="errorMessage && !isLoading" 
+    severity="error" 
+    styleClass="w-full mb-4"
+  ></p-message>
+
+  <!-- Empty State -->
+  <p-card *ngIf="!isLoading && subscriptions.length === 0 && !errorMessage" styleClass="text-center">
+    <i class="pi pi-bell text-6xl text-300 mb-3 block"></i>
+    <h3 class="text-xl mb-2">No Subscriptions Found</h3>
+    <p class="text-500 mb-4">
+      You haven't subscribed to any artists yet.
+    </p>
+  </p-card>
+
+  <!-- Subscriptions Grid -->
+  <div class="grid" *ngIf="!isLoading && subscriptions.length > 0">
+    <div class="col-12 md:col-6 lg:col-4 xl:col-3" *ngFor="let subscription of subscriptions">
+      <p-card styleClass="h-full shadow-2 hover:shadow-4 transition-all transition-duration-200">
+
+        <!-- Target Artist Info -->
+        <div class="text-center mb-3">
+          <h3 class="text-xl font-bold text-900 mb-2">
+            {{ subscription.targetName }}
+            <i class="pi pi-bell text-primary ml-2" title="Subscribed"></i>
+          </h3>
+          <p class="text-500 text-xl mb-0">{{subscription.type}}</p>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex gap-2 justify-content-center">
+          <p-button 
+            severity="danger"
+            size="large"
+            (onClick)="unsubscribe(subscription)"
+            label="Unsubscribe"
+            tooltipPosition="top"
+          ></p-button>
+        </div>
+
+      </p-card>
+    </div>
+  </div>
+</div>
+
+<p-toast></p-toast>
+<p-confirmDialog></p-confirmDialog>
