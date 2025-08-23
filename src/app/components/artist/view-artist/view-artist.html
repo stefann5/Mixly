@@ -1,59 +1,70 @@
 <div class="p-4">
-  
   <!-- Header -->
   <div class="flex justify-content-between align-items-center mb-4">
     <h1 class="text-3xl font-bold m-0">Artists</h1>
-    <p-button 
-      label="Create Artist" 
-      icon="pi pi-plus" 
+    <p-button
+      label="Create Artist"
+      icon="pi pi-plus"
       (onClick)="navigateToCreate()"
     ></p-button>
   </div>
 
   <!-- Loading State -->
-  <div class="flex justify-content-center align-items-center" style="min-height: 200px" *ngIf="isLoading && artists.length === 0">
+  <div
+    class="flex justify-content-center align-items-center"
+    style="min-height: 200px"
+    *ngIf="isLoading && artists.length === 0"
+  >
     <p-progressSpinner strokeWidth="3"></p-progressSpinner>
   </div>
 
   <!-- Error State -->
-  <p-message 
-    *ngIf="errorMessage && !isLoading" 
-    severity="error" 
+  <p-message
+    *ngIf="errorMessage && !isLoading"
+    severity="error"
     [text]="errorMessage"
     styleClass="w-full mb-4"
   ></p-message>
 
   <!-- Empty State -->
-  <p-card *ngIf="!isLoading && artists.length === 0 && !errorMessage" styleClass="text-center">
+  <p-card
+    *ngIf="!isLoading && artists.length === 0 && !errorMessage"
+    styleClass="text-center"
+  >
     <i class="pi pi-users text-6xl text-300 mb-3 block"></i>
     <h3 class="text-xl mb-2">No Artists Found</h3>
-    <p class="text-500 mb-4">
-      No artists have been added yet.
-    </p>
-    <p-button 
-      label="Create First Artist" 
-      icon="pi pi-plus" 
+    <p class="text-500 mb-4">No artists have been added yet.</p>
+    <p-button
+      label="Create First Artist"
+      icon="pi pi-plus"
       (onClick)="navigateToCreate()"
     ></p-button>
   </p-card>
 
   <!-- Artists Grid -->
   <div class="grid" *ngIf="!isLoading && artists.length > 0">
-    <div class="col-12 md:col-6 lg:col-4 xl:col-3" *ngFor="let artist of artists">
-      <p-card styleClass="h-full shadow-2 hover:shadow-4 transition-all transition-duration-200">
-        
+    <div
+      class="col-12 md:col-6 lg:col-4 xl:col-3"
+      *ngFor="let artist of artists"
+    >
+      <p-card
+        styleClass="h-full shadow-2 hover:shadow-4 transition-all transition-duration-200"
+      >
         <!-- Artist Name -->
         <h3 class="text-xl font-bold text-center mb-3 text-900">
           {{ artist.name }}
-          <i 
-            class="pi pi-verified text-primary ml-2" 
+          <i
+            class="pi pi-verified text-primary ml-2"
             *ngIf="artist.metadata?.verified"
             title="Verified Artist"
           ></i>
         </h3>
 
         <!-- Country & Year -->
-        <div class="text-center mb-3 text-500" *ngIf="artist.country || artist.formedYear">
+        <div
+          class="text-center mb-3 text-500"
+          *ngIf="artist.country || artist.formedYear"
+        >
           <span *ngIf="artist.country">{{ artist.country }}</span>
           <span *ngIf="artist.country && artist.formedYear"> • </span>
           <span *ngIf="artist.formedYear">{{ artist.formedYear }}</span>
@@ -66,12 +77,15 @@
 
         <!-- Genres using Chips -->
         <div class="mb-4">
-          <p-chip 
-            *ngFor="let genre of artist.genres.slice(0, 4)" 
-            [label]="genre" 
+          <p-chip
+            *ngFor="let genre of artist.genres.slice(0, 4)"
+            [label]="genre"
             styleClass="mr-1 mb-1 text-xs p-chip-outlined"
           ></p-chip>
-          <span *ngIf="artist.genres.length > 4" class="text-500 text-sm block mt-1">
+          <span
+            *ngIf="artist.genres.length > 4"
+            class="text-500 text-sm block mt-1"
+          >
             +{{ artist.genres.length - 4 }} more genres
           </span>
         </div>
@@ -80,17 +94,17 @@
 
         <!-- Actions -->
         <div class="flex gap-2 justify-content-center mt-3">
-          <p-button 
-            icon="pi pi-eye" 
+          <p-button
+            icon="pi pi-eye"
             severity="info"
             size="small"
             (onClick)="viewArtistDetails(artist)"
             pTooltip="View Details"
             tooltipPosition="top"
           ></p-button>
-          
-          <p-button 
-            icon="pi pi-pencil" 
+
+          <p-button
+            icon="pi pi-pencil"
             severity="danger"
             size="small"
             (onClick)="editArtist(artist)"
@@ -98,9 +112,9 @@
             pTooltip="Edit Artist"
             tooltipPosition="top"
           ></p-button>
-          
-          <p-button 
-            icon="pi pi-trash" 
+
+          <p-button
+            icon="pi pi-trash"
             severity="danger"
             size="small"
             (onClick)="deleteArtist(artist)"
@@ -108,17 +122,23 @@
             pTooltip="Delete Artist"
             tooltipPosition="top"
           ></p-button>
-        </div>
 
+          <p-button
+            [icon]="'pi pi-bell'"
+            size="small"
+            (onClick)="subscribeToArtist(artist)"
+            tooltipPosition="top"
+          ></p-button>
+        </div>
       </p-card>
     </div>
   </div>
 
   <!-- Load More Button -->
   <div class="text-center mt-4" *ngIf="hasMore && !isLoading">
-    <p-button 
-      label="Load More Artists" 
-      icon="pi pi-chevron-down" 
+    <p-button
+      label="Load More Artists"
+      icon="pi pi-chevron-down"
       severity="secondary"
       (onClick)="loadMoreArtists()"
       [loading]="isLoadingMore"
