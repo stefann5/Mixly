@@ -112,7 +112,7 @@ export class ViewArtists implements OnInit {
   }
 
   navigateToCreate(): void {
-    this.router.navigate(['/artists/create']);
+    this.router.navigate(['dashboard/create-artist']);
   }
 
   viewArtistDetails(artist: Artist): void {
