@@ -88,7 +88,7 @@ export const routes: Routes = [
         path: '**',
         redirectTo: '',
         pathMatch: 'full'
-    }
+    },
   { path: 'login', component: Login },
   { path: 'register', component: Register },
   {

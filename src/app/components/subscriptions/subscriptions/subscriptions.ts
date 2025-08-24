@@ -12,6 +12,7 @@ import { Divider } from "primeng/divider";
 import { CommonModule } from '@angular/common';
 import { SubscriptionsService } from '../../../services/subscriptions/subscription-service';
 import { Subscription } from '../../../services/subscriptions/subscription-service';
+import { AuthService } from '../../../auth/service/auth-service';
 
 @Component({
   selector: 'app-subscriptions',
@@ -32,21 +33,37 @@ export class SubscriptionsComponent implements OnInit {
     private router: Router,
     private messageService: MessageService,
     private confirmationService: ConfirmationService,
-    private subscriptionService: SubscriptionsService
+    private subscriptionService: SubscriptionsService,
+    private authService: AuthService
   ) {}
 
   ngOnInit(): void {
     this.loadSubscriptions();
   }
 
+
+  private parseJwt(token: string): any {
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+    return JSON.parse(jsonPayload);
+  }
+
   loadSubscriptions(): void {
     this.isLoading = true;
     this.errorMessage = null;
     
-    this.subscriptionService.getSubscriptions().subscribe({
+    const token = this.authService.getAccessToken();
+    if (token){
+      const decoded = this.parseJwt(token);
+    this.subscriptionService.getSubscriptions({username: decoded.username}).subscribe({
       next: (data) => {
         this.subscriptions = data.subscriptions;
-        console.log(this.subscriptions)
         this.hasMore = data.hasMore;
         this.isLoading = false;
       },
@@ -62,6 +79,8 @@ export class SubscriptionsComponent implements OnInit {
     });
       this.isLoading = false;
       this.hasMore = true;
+    }
+    
   }
 
   unsubscribe(subscription: Subscription): void {
