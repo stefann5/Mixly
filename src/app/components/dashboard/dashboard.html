@@ -2,6 +2,51 @@
     <app-sidebar></app-sidebar>
   <!-- <p-button (onClick)="navigateToArtists()">View Artists</p-button> -->
 
+  <!-- Notification Bell -->
+    <div style="position: fixed; top: 10px; right: 15px; z-index: 1000;">
+    <p-button 
+      icon="pi pi-bell" 
+      badgeClass="p-badge-danger"
+      class="p-button-rounded p-button-text"
+      pTooltip="Notifikacije"
+      tooltipPosition="left"
+      (onClick)="showNotifications = true">
+    </p-button>
+  </div>
+  
+
+  <!-- Notifications Drawer -->
+  <p-drawer 
+    [(visible)]="showNotifications" 
+    position="right" 
+    [style]="{'width': '450px'}"
+    header="Notifications">
+
+    <!-- Notifications List -->
+    <div *ngIf="notifications.length > 0">
+      <p-card 
+        *ngFor="let notification of notifications;" 
+        class="p-mb-3 mt-3"
+        >
+        <ng-template pTemplate="content">
+          <div class="p-d-flex p-ai-start">
+            
+            <div class="p-flex-fill">
+              
+              <p class="p-text-secondary p-mb-2">{{ notification.message }}</p>
+              
+              <div class="p-d-flex p-ai-center p-jc-between">
+                <small class="p-text-color-secondary">
+                  {{ notification.timestamp | date:'short' }}
+                </small>
+              </div>
+            </div>
+          </div>
+        </ng-template>
+      </p-card>
+    </div>
+
+  </p-drawer>
   
   <div class="dashboard-content">
     <router-outlet></router-outlet> <!-- This renders dashboard child routes -->
