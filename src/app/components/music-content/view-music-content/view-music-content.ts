@@ -15,6 +15,7 @@ import { ImageModule } from 'primeng/image';
 import { ArtistService, GetArtistsParams } from '../../../services/artists/artist-service';
 import { TooltipModule } from 'primeng/tooltip';
 import { firstValueFrom, Observable } from 'rxjs';
+import { AuthService } from '../../../auth/service/auth-service';
 
 interface PlaybackState {
   isPlaying: boolean;
@@ -49,7 +50,8 @@ export class ViewMusicContent implements OnInit {
     private router: Router, 
     private messageService: MessageService,
     private artistService: ArtistService,
-    private musicContentService: MusicContentService) {}
+    private musicContentService: MusicContentService,
+    private authService: AuthService) {}
 
     ngOnInit(): void {
         this.loadMusicContent();
@@ -106,18 +108,7 @@ export class ViewMusicContent implements OnInit {
     }
 
     isAdmin(): boolean {
-      const userRole = localStorage.getItem('userRole') || sessionStorage.getItem('userRole');
-      return (
-        userRole === 'admin' || this.getUserGroups().includes('administrators')
-      );
-    }
-
-    private getUserGroups(): string[] {
-      const groups =
-        localStorage.getItem('userGroups') ||
-        sessionStorage.getItem('userGroups') ||
-        '';
-      return groups.split(',').filter((g) => g.trim().length > 0);
+      return this.authService.isAdmin();
     }
 
     deleteSong(song: MusicContent): void {

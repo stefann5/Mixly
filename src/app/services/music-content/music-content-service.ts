@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { API_URL } from '../../globals';
 import { Observable } from 'rxjs';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 
 export interface MusicContent {
   coverImageUrl: string;
@@ -100,6 +100,7 @@ export class MusicContentService {
     if(content.coverImage) {
       formData.append('coverImage', content.coverImage);
     }
+
     return this.http.post<CreateMusicContentResponse>(this.apiUrl, formData);
   }
 

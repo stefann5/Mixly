@@ -58,7 +58,7 @@ export const routes: Routes = [
     children: [
       { path: 'view-artists', component: ViewArtists, canActivate: [AuthGuard], data: { role: 'admin' } },
       { path: 'create-artist', component: CreateArtist, canActivate: [AuthGuard], data: { role: 'admin' } },
-      { path: 'music-content', component: ViewMusicContent, canActivate: [AuthGuard], data: {role: 'admin'}},
+      { path: 'music-content', component: ViewMusicContent, canActivate: [AuthGuard]},
       { path: 'music-content/create', component: CreateMusicContent, canActivate: [AuthGuard], data: {role: 'admin'}},
       { path: 'music-content/update/:contentId', component: UpdateMusicContent, canActivate: [AuthGuard], data: {role: 'admin'}}
       // { path: '', redirectTo: 'view-artists', pathMatch: 'full' } // Default dashboard route
