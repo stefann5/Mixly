@@ -59,8 +59,17 @@ export class AuthInterceptor implements HttpInterceptor {
    */
   private addAuthHeader(request: HttpRequest<any>): HttpRequest<any> {
     const accessToken = this.authService.getAccessToken();
+
+    const isFormData = request.body instanceof FormData;
     
     if (accessToken && this.authService.isAuthenticated()) {
+      if(isFormData) {
+        return request.clone({
+          setHeaders: {
+            Authorization: `Bearer ${accessToken}`
+          }
+        });
+      }
       return request.clone({
         setHeaders: {
           Authorization: `Bearer ${accessToken}`,
@@ -69,6 +78,9 @@ export class AuthInterceptor implements HttpInterceptor {
       });
     }
     
+    if(isFormData) {
+      return request;
+    }
     return request.clone({
       setHeaders: {
         'Content-Type': 'application/json'

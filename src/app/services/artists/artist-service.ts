@@ -51,6 +51,7 @@ export interface GetArtistsParams {
   limit?: number;
   lastKey?: string;
   genre?: string;
+  artistId?: string;
 }
 
 @Injectable({
@@ -77,6 +78,10 @@ export class ArtistService {
     
     if (params.genre) {
       httpParams = httpParams.set('genre', params.genre);
+    }
+
+    if(params.artistId) {
+      httpParams = httpParams.set('artistId', params.artistId)
     }
 
     return this.http.get<GetArtistsResponse>(this.apiUrl, { params: httpParams });
