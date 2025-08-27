@@ -20,6 +20,10 @@ export interface MusicContent {
   streamURL: string;
 }
 
+export interface GetByIdResponse {
+  content: MusicContent
+}
+
 export interface GetAllMusicContentResponse {
   content: MusicContent[];
   count: number;
@@ -81,9 +85,9 @@ export class MusicContentService {
     return this.http.get<GetAllMusicContentResponse>(this.apiUrl);
   }
 
-  getMusicContentById(contentId: string): Observable<MusicContent> {
+  getMusicContentById(contentId: string): Observable<GetByIdResponse> {
     const httpParams = new HttpParams().set('contentId', contentId);
-    return this.http.get<MusicContent>(this.apiUrl, {params: httpParams});
+    return this.http.get<GetByIdResponse>(this.apiUrl, {params: httpParams});
   }
 
   createMusicContent(content: CreateMusicContentRequest): Observable<CreateMusicContentResponse> {
