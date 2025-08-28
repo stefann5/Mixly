@@ -9,6 +9,7 @@ import { SubscriptionsComponent } from './components/subscriptions/subscriptions
 import { ViewMusicContent } from './components/music-content/view-music-content/view-music-content';
 import { CreateMusicContent } from './components/music-content/create-music-content/create-music-content';
 import { UpdateMusicContent } from './components/music-content/update-music-content/update-music-content';
+import { Discover } from './components/discover/discover';
 
 // export const routes: Routes = [
 //     {
@@ -60,7 +61,9 @@ export const routes: Routes = [
       { path: 'create-artist', component: CreateArtist, canActivate: [AuthGuard], data: { role: 'admin' } },
       { path: 'music-content', component: ViewMusicContent, canActivate: [AuthGuard]},
       { path: 'music-content/create', component: CreateMusicContent, canActivate: [AuthGuard], data: {role: 'admin'}},
-      { path: 'music-content/update/:contentId', component: UpdateMusicContent, canActivate: [AuthGuard], data: {role: 'admin'}}
+      { path: 'music-content/update/:contentId', component: UpdateMusicContent, canActivate: [AuthGuard], data: {role: 'admin'}},
+      { path: 'discover', component: Discover, canActivate: [AuthGuard]},
+
       // { path: '', redirectTo: 'view-artists', pathMatch: 'full' } // Default dashboard route
     ]
   },

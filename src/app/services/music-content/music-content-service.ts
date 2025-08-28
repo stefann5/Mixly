@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { API_URL } from '../../globals';
 import { Observable } from 'rxjs';
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
+import { Artist, ContentResponse } from '../discover/discover-service';
 
 export interface MusicContent {
   coverImageUrl: string;
@@ -88,6 +89,16 @@ export class MusicContentService {
   getMusicContentById(contentId: string): Observable<GetByIdResponse> {
     const httpParams = new HttpParams().set('contentId', contentId);
     return this.http.get<GetByIdResponse>(this.apiUrl, {params: httpParams});
+  }
+
+  getMusicContentByArtistId(artistId: string):Observable<ContentResponse> {
+    const httpParams = new HttpParams().set('artistId', artistId);
+    return this.http.get<ContentResponse>(this.apiUrl, {params: httpParams});
+  }
+
+  getMusicContentByAlbumId(albumId: string):Observable<ContentResponse> {
+    const httpParams = new HttpParams().set('albumId', albumId);
+    return this.http.get<ContentResponse>(this.apiUrl, {params: httpParams});
   }
 
   createMusicContent(content: CreateMusicContentRequest): Observable<CreateMusicContentResponse> {
