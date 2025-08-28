@@ -1,0 +1,198 @@
+<div class="create-music-content-container">
+  <p-toast></p-toast>
+  
+  <!-- Loading overlay for initial data -->
+  <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" *ngIf="isLoadingData">
+    <div class="bg-white p-8 rounded-lg shadow-lg text-center">
+      <p-progressSpinner></p-progressSpinner>
+      <p>Loading music content...</p>
+    </div>
+  </div>
+
+  <p-card *ngIf="!isLoadingData">
+    <ng-template pTemplate="header">
+      <div class="card-header">
+        <h2>Edit Music Content</h2>
+        <div *ngIf="currentMusicContent" class="text-sm text-gray-600 mt-2">
+          Editing: {{ currentMusicContent.title }}
+        </div>
+      </div>
+    </ng-template>
+
+    <form [formGroup]="musicForm" (ngSubmit)="onSubmit()" class="music-form">
+      
+      <!-- Song Title -->
+      <div class="form-field">
+        <label for="title" class="field-label">
+          Song title <span class="text-red-500 ml-1">*</span>
+        </label>
+        <input
+          pInputText
+          id="title"
+          formControlName="title"
+          placeholder="Insert song title"
+          [class.ng-invalid]="isFieldInvalid('title')"
+          class="w-full"
+        />
+        <small 
+          class="error-message" 
+          *ngIf="isFieldInvalid('title')"
+        >
+          {{ getFieldError('title') }}
+        </small>
+      </div>
+
+      <!-- Artist -->
+      <div class="mb-4">
+        <label for="artistId" class="block mb-2 font-medium">
+          Artist <span class="text-red-500 ml-1">*</span>
+        </label>
+        <p-select
+          [options]="artistOptions"
+          formControlName="artistId"
+          placeholder="Choose artist"
+          optionLabel="label"
+          optionValue="value"
+          [class.ng-invalid]="isFieldInvalid('artistId')"
+          class="w-full"
+        ></p-select>
+        <small 
+          class="text-red-500 block mt-1 text-sm" 
+          *ngIf="isFieldInvalid('artistId')"
+        >
+          {{ getFieldError('artistId') }}
+        </small>
+      </div>
+
+      <!-- Album -->
+      <div class="mb-4">
+        <label for="album" class="block mb-2 font-medium">Album</label>
+        <input
+          pInputText
+          id="album"
+          formControlName="album"
+          placeholder="Insert Album Name (optional)"
+          [class.ng-invalid]="isFieldInvalid('album')"
+          class="w-full"
+        />
+        <small 
+          class="error-message" 
+          *ngIf="isFieldInvalid('album')"
+        >
+          {{ getFieldError('album') }}
+        </small>
+      </div>
+
+      <!-- Genre -->
+      <div class="mb-4">
+        <label for="genre" class="block mb-2 font-medium">Genre</label>
+        <p-select
+          [options]="genreOptions"
+          formControlName="genre"
+          placeholder="Choose genre (optional)"
+          optionLabel="label"
+          optionValue="value"
+          class="w-full"
+        ></p-select>
+      </div>
+
+      <p-divider></p-divider>
+
+      <!-- Audio file -->
+      <div class="mb-4">
+        <label class="block mb-2 font-medium">
+          Replace Audio File (optional)
+        </label>
+        <p-fileUpload
+          mode="basic"
+          name="audioFile"
+          accept="audio/*"
+          [maxFileSize]="10485760"
+          (onSelect)="onAudioFileSelect($event)"
+          (onRemove)="onAudioFileRemove()"
+          chooseLabel="Choose New Audio File"
+          class="w-full"
+          [auto]="false"
+        ></p-fileUpload>
+        <small class="block mt-2 text-sm text-gray-600">
+          Supported formats: MP3, WAV, M4A, OGG, AAC, FLAC (max 10MB)
+        </small>
+        <div class="flex items-center gap-3 mt-3 p-3 bg-gray-100 rounded border-l-4 border-primary" *ngIf="audioFile">
+          <i class="pi pi-music"></i>
+          <span class="flex-1 text-sm">{{ audioFile.name }}</span>
+          <button 
+            type="button" 
+            pButton 
+            icon="pi pi-times" 
+            class="p-button-text p-button-danger p-button-sm"
+            (click)="onAudioFileRemove()"
+          ></button>
+        </div>
+      </div>
+
+      <!-- Cover image -->
+      <div class="mb-4">
+        <label class="block mb-2 font-medium">Replace Cover Image (optional)</label>
+        <p-fileUpload
+          mode="basic"
+          name="coverImage"
+          accept="image/*"
+          [maxFileSize]="5242880"
+          (onSelect)="onCoverImageSelect($event)"
+          (onRemove)="onCoverImageRemove()"
+          chooseLabel="Choose New Cover Image"
+          class="w-full"
+          [auto]="false"
+        ></p-fileUpload>
+        <small class="file-info">
+          Supported formats: JPEG, PNG, WEBP (max 5MB)
+        </small>
+        <div class="flex items-center gap-3 mt-3 p-3 bg-gray-100 rounded border-l-4 border-primary" *ngIf="coverImage">
+          <i class="pi pi-image text-primary"></i>
+          <span class="flex-1 text-sm">{{ coverImage.name }}</span>
+          <button 
+            type="button" 
+            pButton 
+            icon="pi pi-times" 
+            class="p-button-text p-button-danger p-button-sm"
+            (click)="onCoverImageRemove()"
+          ></button>
+        </div>
+      </div>
+
+    </form>
+
+    <ng-template pTemplate="footer">
+      <div class="flex justify-end gap-3 mt-4">
+        <button
+          pButton
+          type="button"
+          label="Cancel"
+          icon="pi pi-times"
+          class="p-button-secondary"
+          (click)="onCancel()"
+          [disabled]="isLoading"
+        ></button>
+        
+        <button
+          pButton
+          type="submit"
+          label="Update Song"
+          icon="pi pi-check"
+          class="p-button-primary"
+          (click)="onSubmit()"
+          [disabled]="isLoading"
+          [loading]="isLoading"
+        ></button>
+      </div>
+    </ng-template>
+  </p-card>
+
+  <!-- Loading overlay for update operation -->
+  <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" *ngIf="isLoading">
+    <div class="bg-white p-8 rounded-lg shadow-lg text-center">
+      <p-progressSpinner></p-progressSpinner>
+      <p>Updating song...</p>
+    </div>
+  </div>
+</div>
