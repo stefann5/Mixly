@@ -13,10 +13,9 @@ export interface Subscription {
 }
 
 export interface CreateSubscriptionRequest {
-  username: string;
   subscriptionType: string;
-  targetId: string;
-  targetName: string;
+  targetId: string | undefined | null;
+  targetName: string | undefined | null;
 }
 
 export interface GetSubscriptionsResponse {
@@ -37,6 +36,10 @@ export interface CreateSubscriptionResponse {
   };
 }
 
+export interface IsSubscribedResponse {
+  is_subscribed: boolean;
+}
+
 export interface GetSubscriptionsParams {
   limit?: number;
   lastKey?: string;
@@ -47,7 +50,7 @@ export interface GetSubscriptionsParams {
   providedIn: 'root'
 })
 export class SubscriptionsService {
-  private readonly apiUrl = `${API_URL}/subscription`;
+  private readonly apiUrl = `${API_URL}subscription`;
 
   constructor(private http: HttpClient) {}
 
@@ -78,4 +81,10 @@ export class SubscriptionsService {
   deleteSubscription(subscriptionId: string): Observable<{ message: string }> {
     return this.http.delete<{ message: string }>(`${this.apiUrl}/${subscriptionId}`);
   }
+
+  isSubscribed(subscriptionType: any, target_id: any, target_name: any): Observable<IsSubscribedResponse> {
+      return this.http.get<IsSubscribedResponse>(this.apiUrl + '/check', {
+        params: { subscriptionType, target_id, target_name }
+      });
+    }
 }
