@@ -13,7 +13,7 @@ export interface Rating {
 
 export interface CreateRatingRequest {
   songId: string;
-  username: string;
+  username: string | undefined;
   stars: number;
 }
 
@@ -36,6 +36,10 @@ export interface CreateRatingResponse {
   };
 }
 
+export interface IsRatedResponse {
+  is_rated: boolean;
+}
+
 export interface GetRatingParams {
   limit?: number;
   lastKey?: string;
@@ -46,7 +50,7 @@ export interface GetRatingParams {
   providedIn: 'root'
 })
 export class RatingService {
-  private readonly apiUrl = `${API_URL}/rating`;
+  private readonly apiUrl = `${API_URL}rating`;
 
   constructor(private http: HttpClient) {}
 
@@ -73,5 +77,11 @@ export class RatingService {
 
   createRating(ratingData: CreateRatingRequest): Observable<CreateRatingResponse> {
     return this.http.post<CreateRatingResponse>(this.apiUrl, ratingData);
+  }
+
+  isRated(songId: any): Observable<IsRatedResponse> {
+    return this.http.get<IsRatedResponse>(this.apiUrl + '/check', {
+      params: { songId }
+    });
   }
 }

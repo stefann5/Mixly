@@ -62,6 +62,13 @@ export const routes: Routes = [
       { path: 'music-content', component: ViewMusicContent, canActivate: [AuthGuard]},
       { path: 'music-content/create', component: CreateMusicContent, canActivate: [AuthGuard], data: {role: 'admin'}},
       { path: 'music-content/update/:contentId', component: UpdateMusicContent, canActivate: [AuthGuard], data: {role: 'admin'}},
+      {
+        path: 'subscriptions',
+        component: SubscriptionsComponent,
+        title: 'Subscriptions',
+        //canActivate: [AuthGuard],
+        // data: { role: 'admin' } // Uncomment if you want route-level admin check
+    },
       { path: 'discover', component: Discover, canActivate: [AuthGuard]},
 
       // { path: '', redirectTo: 'view-artists', pathMatch: 'full' } // Default dashboard route
