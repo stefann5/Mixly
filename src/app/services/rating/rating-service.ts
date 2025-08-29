@@ -13,7 +13,6 @@ export interface Rating {
 
 export interface CreateRatingRequest {
   songId: string;
-  username: string | undefined;
   stars: number;
 }
 

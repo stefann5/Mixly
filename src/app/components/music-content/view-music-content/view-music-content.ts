@@ -418,7 +418,6 @@ export class ViewMusicContent implements OnInit {
     this.ratingService
       .createRating({
         songId: this.currentContent.contentId,
-        username: this.authService.getCurrentUser()?.username,
         stars: this.selectedRating,
       })
       .subscribe({

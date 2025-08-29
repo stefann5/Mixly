@@ -21,6 +21,10 @@ import { ToastModule } from 'primeng/toast';
 import { Album, Artist, DiscoverService, Genre, MusicContent } from '../../services/discover/discover-service';
 import { ArtistService, GetArtistsParams } from '../../services/artists/artist-service';
 import { MusicContentService } from '../../services/music-content/music-content-service';
+import { DialogModule } from 'primeng/dialog';
+import { RatingModule } from 'primeng/rating';
+import { RatingService } from '../../services/rating/rating-service';
+import { SubscriptionsService } from '../../services/subscriptions/subscription-service';
 
 
 
@@ -53,7 +57,9 @@ interface PlaybackState {
     TooltipModule,
     BadgeModule,
     ImageModule,
-    ToastModule
+    ToastModule,
+    DialogModule,
+    RatingModule
   ],
   templateUrl: "discover.html",
   styles: [`
@@ -131,7 +137,9 @@ export class Discover implements OnInit {
     private discoverService: DiscoverService,
     private artistService: ArtistService,
     private messageService: MessageService,
-    private musicContentService: MusicContentService
+    private musicContentService: MusicContentService,
+    private ratingService: RatingService,
+    private subscriptionService: SubscriptionsService
   ) {}
 
   ngOnInit() {
@@ -470,4 +478,128 @@ export class Discover implements OnInit {
   formatDate(dateString: string): string {
     return new Date(dateString).toLocaleDateString('sr-RS');
   }
+
+    rateDialogVisible = false;
+  subscribeDialogVisible = false;
+  currentContent: any = null;
+  selectedRating: number = 0;
+  selectedSubscribeType: string = '';
+  async openRateDialog(content: any) {
+    console.log(content);
+    this.currentContent = content;
+    this.selectedRating = 0;
+
+    // Proveri da li je pesma već ocenjena
+    await this.checkCurrentSongRatingStatus(content);
+
+    // Ako je već ocenjena, prikaži poruku i ne otvaraj dialog
+    if (this.isSongRated(content.contentId)) {
+      this.messageService.add({
+        severity: 'info',
+        summary: 'Already Rated',
+        detail: 'You have already rated this song.',
+      });
+      return;
+    }
+
+    this.rateDialogVisible = true;
+  }
+
+  // TypeScript kod - dodajte ova svojstva u klasu
+  ratingsDialogVisible = false;
+  selectedContentRatings: any[] = [];
+  loadingRatings = false;
+
+  ratedSongs = new Set<string>();
+
+  isSongRated(songId: string): boolean {
+    return this.ratedSongs.has(songId);
+  }
+  submitRating() {
+    console.log(this.currentContent)
+    this.ratingService
+      .createRating({
+        songId: this.currentContent.contentId,
+        stars: this.selectedRating,
+      })
+      .subscribe({
+        next: (response) => {
+          this.messageService.add({
+            severity: 'success',
+            summary: 'Success',
+            detail: response.message,
+          });
+          if (this.selectedAlbum){
+            this.loadContentForAlbum(this.selectedAlbum);
+          }
+          
+        },
+        error: (error) => {
+          console.error(error);
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Error',
+            detail: error,
+          });
+        },
+      });
+    this.rateDialogVisible = false;
+  }
+  showRatings(contentId: string) {
+    this.loadingRatings = true;
+    this.ratingsDialogVisible = true;
+
+    this.ratingService.getRatings({ songId: contentId }).subscribe({
+      next: (ratings) => {
+        this.selectedContentRatings = ratings.ratings;
+        this.loadingRatings = false;
+      },
+      error: (error) => {
+        console.error('Error loading ratings:', error);
+        this.loadingRatings = false;
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: 'Failed to load ratings',
+        });
+      },
+    });
+  }
+  // Dodajte ovu metodu u klasu
+  getAverageRating(): string {
+    if (this.selectedContentRatings.length === 0) return '0.0';
+    const average =
+      this.selectedContentRatings.reduce((sum, r) => sum + r.stars, 0) /
+      this.selectedContentRatings.length;
+    return average.toFixed(1);
+  }
+  // Dodajte ovu helper metodu za kreiranje array-a zvezda
+  getStarsArray(rating: number): boolean[] {
+    return Array(5)
+      .fill(false)
+      .map((_, index) => index < rating);
+  }
+
+  // Dodajte ovu novu metodu
+  async checkCurrentSongRatingStatus(content: any) {
+    try {
+      const isRated = await firstValueFrom(
+        this.ratingService.isRated(content.contentId)
+      );
+
+      console.log('Rating response:', isRated);
+      console.log('Rating type:', typeof isRated);
+
+      if (isRated.is_rated) {
+        this.ratedSongs.add(content.contentId);
+      } else {
+        this.ratedSongs.delete(content.contentId);
+      }
+
+      console.log('ratedSongs:', this.ratedSongs);
+    } catch (error) {
+      console.error('Error checking rating status:', error);
+    }
+  }
+
 }
