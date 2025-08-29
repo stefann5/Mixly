@@ -16,6 +16,9 @@ import { ArtistService, GetArtistsParams } from '../../../services/artists/artis
 import { TooltipModule } from 'primeng/tooltip';
 import { firstValueFrom, Observable } from 'rxjs';
 import { AuthService } from '../../../auth/service/auth-service';
+import { TranscriptionService, TranscriptionResponse } from '../../../services/transcription/transcription-service';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import { TabsModule } from 'primeng/tabs';
 
 interface PlaybackState {
   isPlaying: boolean;
@@ -23,9 +26,18 @@ interface PlaybackState {
   currentContentId: string | null;
 }
 
+interface TranscriptionState {
+  [contentId: string]: {
+    data?: TranscriptionResponse;
+    loading: boolean;
+    error?: string;
+    htmlContent?: SafeHtml;
+  };
+}
+
 @Component({
   selector: 'app-view-music-content',
-  imports: [ButtonModule, TooltipModule, ProgressSpinnerModule, MessageModule, CardModule, CommonModule, ChipModule, DividerModule, ToastModule, DialogModule, ImageModule],
+  imports: [ButtonModule, TooltipModule, ProgressSpinnerModule, MessageModule, CardModule, CommonModule, ChipModule, DividerModule, ToastModule, DialogModule, ImageModule, TabsModule],
   templateUrl: './view-music-content.html',
   styleUrl: './view-music-content.scss',
   providers: [MessageService]
@@ -46,12 +58,16 @@ export class ViewMusicContent implements OnInit {
     currentContentId: null
   };
 
+  transcriptionStates: TranscriptionState = {};
+
   constructor(
     private router: Router, 
     private messageService: MessageService,
     private artistService: ArtistService,
     private musicContentService: MusicContentService,
-    private authService: AuthService) {}
+    private authService: AuthService,
+    private transcriptionService: TranscriptionService,
+    private sanitizer: DomSanitizer) {}
 
     ngOnInit(): void {
         this.loadMusicContent();
@@ -101,6 +117,8 @@ export class ViewMusicContent implements OnInit {
     viewSongDetails(song: MusicContent): void {
       this.selectedContent = song;
       this.displayDialog = true;
+      // Load transcription when dialog opens
+      this.loadTranscription(song.contentId);
     }
 
     editSong(song: MusicContent): void {
@@ -197,6 +215,9 @@ export class ViewMusicContent implements OnInit {
         currentAudio: audio,
         currentContentId: content.contentId
       };
+
+      // Load transcription when playing starts
+      this.loadTranscription(content.contentId);
     }
 
     stopCurrentPlayback(): void {
@@ -225,5 +246,82 @@ export class ViewMusicContent implements OnInit {
       else {
         this.playContent(content);
       }
+    }
+
+    // Transcription methods
+    loadTranscription(contentId: string): void {
+      // Don't reload if already loading or loaded
+      if (this.transcriptionStates[contentId]) {
+        return;
+      }
+
+      this.transcriptionStates[contentId] = {
+        loading: true
+      };
+
+      this.transcriptionService.getTranscription(contentId, 'html').subscribe({
+        next: (response) => {
+          this.transcriptionStates[contentId] = {
+            loading: false,
+            data: response
+          };
+
+          // Sanitize HTML content if available
+          if (response.html) {
+            this.transcriptionStates[contentId].htmlContent = this.sanitizer.bypassSecurityTrustHtml(response.html);
+          }
+
+          // Inject CSS if provided
+          if (response.css) {
+            this.injectTranscriptionStyles(response.css);
+          }
+        },
+        error: (error) => {
+          console.error('Error loading transcription:', error);
+          this.transcriptionStates[contentId] = {
+            loading: false,
+            error: 'Failed to load transcription'
+          };
+        }
+      });
+    }
+
+    getTranscriptionState(contentId: string) {
+      return this.transcriptionStates[contentId] || { loading: false };
+    }
+
+    hasTranscription(contentId: string): boolean {
+      const state = this.transcriptionStates[contentId];
+      return state?.data?.status === 'COMPLETED' && !!state.data.html;
+    }
+
+    isTranscriptionLoading(contentId: string): boolean {
+      return this.transcriptionStates[contentId]?.loading || false;
+    }
+
+    getTranscriptionError(contentId: string): string | undefined {
+      return this.transcriptionStates[contentId]?.error;
+    }
+
+    getTranscriptionHtml(contentId: string): SafeHtml | undefined {
+      return this.transcriptionStates[contentId]?.htmlContent;
+    }
+
+    private injectTranscriptionStyles(css: string): void {
+      // Check if styles are already injected
+      if (document.getElementById('transcription-styles')) {
+        return;
+      }
+
+      const style = document.createElement('style');
+      style.id = 'transcription-styles';
+      style.textContent = css;
+      document.head.appendChild(style);
+    }
+
+    retryTranscription(contentId: string): void {
+      // Clear existing state and retry
+      delete this.transcriptionStates[contentId];
+      this.loadTranscription(contentId);
     }
 }
