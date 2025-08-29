@@ -62,6 +62,19 @@
               </div>
             </ng-template>
           </p-select>
+          <p-button
+            icon="pi pi-bell"
+            severity="info"
+            size="small"
+            (onClick)="subscribeGenre(this.selectedGenre)"
+            pTooltip="Subscribe"
+            tooltipPosition="top"
+            pTooltip="{{
+              isGenreSubscribed ? 'Already subscribed' : 'Subscribe'
+            }}"
+            tooltipPosition="top"
+            [disabled]="isGenreSubscribed"
+          ></p-button>
         </div>
       </div>
     </p-panel>
@@ -138,6 +151,21 @@
                     }}</span>
                   </p>
                 </div>
+                <p-button
+                  icon="pi pi-bell"
+                  severity="info"
+                  size="small"
+                  (onClick)="subscribeArtist(artist)"
+                  pTooltip="Subscribe"
+                  tooltipPosition="top"
+                  pTooltip="{{
+                    isArtistSubscribed[artist.artistId]
+                      ? 'Already subscribed'
+                      : 'Subscribe'
+                  }}"
+                  tooltipPosition="top"
+                  [disabled]="isArtistSubscribed[artist.artistId]"
+                ></p-button>
               </div>
             </div>
 
