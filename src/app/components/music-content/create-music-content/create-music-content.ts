@@ -1,5 +1,10 @@
 import { Component, OnInit } from '@angular/core';
-import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
+import {
+  FormBuilder,
+  FormGroup,
+  Validators,
+  ReactiveFormsModule,
+} from '@angular/forms';
 import { Router } from '@angular/router';
 import { MessageService } from 'primeng/api';
 
@@ -12,9 +17,13 @@ import { ToastModule } from 'primeng/toast';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
 import { DividerModule } from 'primeng/divider';
 import { CommonModule } from '@angular/common';
-import { MusicContentService, CreateMusicContentRequest } from '../../../services/music-content/music-content-service';
+import {
+  MusicContentService,
+  CreateMusicContentRequest,
+} from '../../../services/music-content/music-content-service';
 import { ArtistService } from '../../../services/artists/artist-service';
 import { SelectModule } from 'primeng/select';
+import { SubscriptionsService } from '../../../services/subscriptions/subscription-service';
 
 interface GenreOption {
   label: string;
@@ -39,11 +48,11 @@ interface ArtistOption {
     SelectModule,
     ToastModule,
     ProgressSpinnerModule,
-    DividerModule
+    DividerModule,
   ],
   templateUrl: './create-music-content.html',
   styleUrl: './create-music-content.scss',
-  providers: [MessageService]
+  providers: [MessageService],
 })
 export class CreateMusicContent implements OnInit {
   musicForm!: FormGroup;
@@ -62,19 +71,18 @@ export class CreateMusicContent implements OnInit {
     { label: 'R&B', value: 'rnb' },
     { label: 'Folk', value: 'folk' },
     { label: 'Alternative', value: 'alternative' },
-    { label: 'TurboFolk', value: 'turboFolk' }
+    { label: 'TurboFolk', value: 'turboFolk' },
   ];
   //Dropdown options for artist
-  artistOptions: ArtistOption[] = [
-    { label: 'Choose artist...', value: '' }
-  ];
+  artistOptions: ArtistOption[] = [{ label: 'Choose artist...', value: '' }];
 
   constructor(
     private fb: FormBuilder,
     private musicContentService: MusicContentService,
     private messageService: MessageService,
     private router: Router,
-    private artistService: ArtistService
+    private artistService: ArtistService,
+    private subscriptionService: SubscriptionsService
   ) {}
 
   ngOnInit() {
@@ -84,30 +92,45 @@ export class CreateMusicContent implements OnInit {
 
   private initializeForm() {
     this.musicForm = this.fb.group({
-      title: ['', [Validators.required, Validators.minLength(1), Validators.maxLength(100)]],
+      title: [
+        '',
+        [
+          Validators.required,
+          Validators.minLength(1),
+          Validators.maxLength(100),
+        ],
+      ],
       artistId: ['', [Validators.required]],
       album: ['', [Validators.maxLength(100)]],
-      genre: ['']
+      genre: [''],
     });
   }
 
   filloutArtistOptions() {
     this.artistService.getArtists().subscribe({
       next: (response) => {
-        for(const artist of response.artists) {
-          this.artistOptions.push({ label: artist.name, value: artist.artistId });
+        for (const artist of response.artists) {
+          this.artistOptions.push({
+            label: artist.name,
+            value: artist.artistId,
+          });
         }
       },
       error: (error) => {
         this.messageService.add({
           severity: 'error',
           summary: 'Error',
-          detail: error.detail
+          detail: error.detail,
         });
-      }
+      },
     });
   }
-
+  private getArtistLabel(artistId: string): string {
+    const artist = this.artistOptions.find(
+      (option) => option.value === artistId
+    );
+    return artist ? artist.label : '';
+  }
   onAudioFileSelect(event: any) {
     const file = event.files[0];
     if (file) {
@@ -117,13 +140,13 @@ export class CreateMusicContent implements OnInit {
         this.messageService.add({
           severity: 'success',
           summary: 'Success',
-          detail: `Audio file "${file.name}" is chosen`
+          detail: `Audio file "${file.name}" is chosen`,
         });
       } else {
         this.messageService.add({
           severity: 'error',
           summary: 'Error',
-          detail: validation.error
+          detail: validation.error,
         });
         this.audioFile = null;
       }
@@ -139,13 +162,13 @@ export class CreateMusicContent implements OnInit {
         this.messageService.add({
           severity: 'success',
           summary: 'Success',
-          detail: `Picture "${file.name}" is chosen`
+          detail: `Picture "${file.name}" is chosen`,
         });
       } else {
         this.messageService.add({
           severity: 'error',
           summary: 'Error',
-          detail: validation.error
+          detail: validation.error,
         });
         this.coverImage = null;
       }
@@ -157,7 +180,7 @@ export class CreateMusicContent implements OnInit {
     this.messageService.add({
       severity: 'info',
       summary: 'Removed file',
-      detail: 'Audio file is removed'
+      detail: 'Audio file is removed',
     });
   }
 
@@ -166,7 +189,7 @@ export class CreateMusicContent implements OnInit {
     this.messageService.add({
       severity: 'info',
       summary: 'Removed picture',
-      detail: 'Picture is removed'
+      detail: 'Picture is removed',
     });
   }
 
@@ -181,18 +204,23 @@ export class CreateMusicContent implements OnInit {
         audioFile: this.audioFile,
         ...(formValues.album && { album: formValues.album }),
         ...(formValues.genre && { genre: formValues.genre }),
-        ...(this.coverImage && { coverImage: this.coverImage })
+        ...(this.coverImage && { coverImage: this.coverImage }),
       };
+      this.notifySubscribers(formValues);
 
       this.musicContentService.createMusicContent(request).subscribe({
         next: (response) => {
+          // Obavesti subscribers nakon uspešnog kreiranja
+          this.notifySubscribers(formValues);
+
           this.isLoading = false;
           this.messageService.add({
             severity: 'success',
             summary: 'Success',
-            detail: `Song "${response.title}" created successfully`
+            detail: `Song "${response.title}" created successfully`,
           });
-          //Waiting for toast to show before navigation
+
+          // Waiting for toast to show before navigation
           setTimeout(() => {
             this.router.navigate(['dashboard/music-content']);
           }, 1500);
@@ -200,7 +228,7 @@ export class CreateMusicContent implements OnInit {
         error: (error) => {
           this.isLoading = false;
           console.error('Error creating song:', error);
-          
+
           let errorMessage = 'Error creating song';
           if (error.error?.message) {
             errorMessage = error.error.message;
@@ -211,9 +239,9 @@ export class CreateMusicContent implements OnInit {
           this.messageService.add({
             severity: 'error',
             summary: 'Error',
-            detail: errorMessage
+            detail: errorMessage,
           });
-        }
+        },
       });
     } else {
       this.markFormGroupTouched();
@@ -221,14 +249,117 @@ export class CreateMusicContent implements OnInit {
         this.messageService.add({
           severity: 'error',
           summary: 'Error',
-          detail: 'Please choose song file'
+          detail: 'Please choose song file',
         });
       }
     }
   }
 
+  private notifySubscribers(formValues: any) {
+    // 1. Obavesti genre subscribers (ako postoji genre)
+    if (formValues.genre) {
+      this.subscriptionService
+        .getSubscriptions({ targetName: formValues.genre })
+        .subscribe({
+          next: (response) => {
+            if (response && response.subscriptions.length > 0) {
+              this.subscriptionService
+                .notifySubscribers(response.subscriptions)
+                .subscribe({
+                  next: () => console.log('Genre subscribers notified'),
+                  error: (err) =>
+                    console.error('Error notifying genre subscribers:', err),
+                });
+            }
+          },
+          error: (err) =>
+            console.error('Error getting genre subscriptions:', err),
+        });
+    }
+
+    // 2. Obavesti artist subscribers
+    if (formValues.artistId) {
+      this.subscriptionService
+        .getSubscriptions({
+          targetName: this.getArtistLabel(formValues.artistId),
+        })
+        .subscribe({
+          next: (response) => {
+            if (response && response.subscriptions.length > 0) {
+              this.subscriptionService
+                .notifySubscribers(response.subscriptions)
+                .subscribe({
+                  next: () => console.log('Artist subscribers notified'),
+                  error: (err) =>
+                    console.error('Error notifying artist subscribers:', err),
+                });
+            }
+          },
+          error: (err) =>
+            console.error('Error getting artist subscriptions:', err),
+        });
+    }
+  }
+
+  // onSubmit() {
+  //   if (this.musicForm.valid && this.audioFile) {
+  //     this.isLoading = true;
+
+  //     const formValues = this.musicForm.value;
+  //     const request: CreateMusicContentRequest = {
+  //       title: formValues.title,
+  //       artistId: formValues.artistId,
+  //       audioFile: this.audioFile,
+  //       ...(formValues.album && { album: formValues.album }),
+  //       ...(formValues.genre && { genre: formValues.genre }),
+  //       ...(this.coverImage && { coverImage: this.coverImage })
+  //     };
+
+  //     this.musicContentService.createMusicContent(request).subscribe({
+  //       next: (response) => {
+  //         this.isLoading = false;
+  //         this.messageService.add({
+  //           severity: 'success',
+  //           summary: 'Success',
+  //           detail: `Song "${response.title}" created successfully`
+  //         });
+  //         //Waiting for toast to show before navigation
+  //         setTimeout(() => {
+  //           this.router.navigate(['dashboard/music-content']);
+  //         }, 1500);
+  //       },
+  //       error: (error) => {
+  //         this.isLoading = false;
+  //         console.error('Error creating song:', error);
+
+  //         let errorMessage = 'Error creating song';
+  //         if (error.error?.message) {
+  //           errorMessage = error.error.message;
+  //         } else if (error.message) {
+  //           errorMessage = error.message;
+  //         }
+
+  //         this.messageService.add({
+  //           severity: 'error',
+  //           summary: 'Error',
+  //           detail: errorMessage
+  //         });
+  //       }
+  //     });
+  //   } else {
+  //     this.markFormGroupTouched();
+  //     if (!this.audioFile) {
+  //       this.messageService.add({
+  //         severity: 'error',
+  //         summary: 'Error',
+  //         detail: 'Please choose song file'
+  //       });
+  //     }
+  //   }
+  // }
+
   private markFormGroupTouched() {
-    Object.keys(this.musicForm.controls).forEach(key => {
+    Object.keys(this.musicForm.controls).forEach((key) => {
       const control = this.musicForm.get(key);
       control?.markAsTouched();
     });
@@ -250,10 +381,14 @@ export class CreateMusicContent implements OnInit {
         return `${this.getFieldDisplayName(fieldName)} is required`;
       }
       if (field.errors['minlength']) {
-        return `${this.getFieldDisplayName(fieldName)} has to have at least ${field.errors['minlength'].requiredLength} characters`;
+        return `${this.getFieldDisplayName(fieldName)} has to have at least ${
+          field.errors['minlength'].requiredLength
+        } characters`;
       }
       if (field.errors['maxlength']) {
-        return `${this.getFieldDisplayName(fieldName)} has to have at most ${field.errors['maxlength'].requiredLength} characters`;
+        return `${this.getFieldDisplayName(fieldName)} has to have at most ${
+          field.errors['maxlength'].requiredLength
+        } characters`;
       }
     }
     return '';
@@ -261,10 +396,10 @@ export class CreateMusicContent implements OnInit {
 
   private getFieldDisplayName(fieldName: string): string {
     const displayNames: { [key: string]: string } = {
-      'title': 'Title',
-      'artistId': 'Artist',
-      'album': 'Album',
-      'genre': 'Genre'
+      title: 'Title',
+      artistId: 'Artist',
+      album: 'Album',
+      genre: 'Genre',
     };
     return displayNames[fieldName] || fieldName;
   }

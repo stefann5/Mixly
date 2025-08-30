@@ -45,9 +45,8 @@ interface PlaybackState {
   currentAudio: HTMLAudioElement | null;
   currentContentId: string | null;
 }
-
 @Component({
-  selector: 'app-discover',
+  selector: 'app-for-you',
   standalone: true,
   imports: [
     CommonModule,
@@ -68,7 +67,7 @@ interface PlaybackState {
     DialogModule,
     RatingModule,
   ],
-  templateUrl: 'discover.html',
+  templateUrl: './for-you.html',
   styles: [
     `
       :host ::ng-deep {
@@ -103,7 +102,7 @@ interface PlaybackState {
   ],
   providers: [MessageService],
 })
-export class Discover implements OnInit {
+export class ForYou implements OnInit {
   // Loading states
   loadingGenres = false;
   loadingArtists = false;
@@ -154,62 +153,16 @@ export class Discover implements OnInit {
 
   ngOnInit() {
     this.checkSubscriptions();
-    this.loadGenres();
+    this.loadArtistsAndAlbums();
   }
 
-  loadGenres() {
-    this.loadingGenres = true;
-    this.discoverService.getGenres().subscribe({
-      next: (response) => {
-        this.genres = response.genres;
-        this.genreOptions = response.genres.map((genre) => ({
-          label: `${genre.genre} (${genre.totalItems})`,
-          value: genre.genre.toLowerCase(),
-        }));
-        this.loadingGenres = false;
-      },
-      error: (error) => {
-        console.error('Error loading genres:', error);
-        this.loadingGenres = false;
-      },
-    });
-  }
-
-  onGenreChange(event: any) {
-    const genreName = event.value;
-    if (genreName) {
-      this.selectedGenreData = this.genres.find(
-        (g) => g.genre.toLowerCase() === genreName
-      );
-      this.resetSelections();
-      this.loadArtistsAndAlbums(genreName);
-    }
-  }
-
-  loadArtistsAndAlbums(genre: string) {
-    // Load artists
-    this.loadingArtists = true;
-    this.discoverService.getArtistsByGenre(genre, 10).subscribe({
-      next: (response) => {
-        this.artists = response.artists;
-        this.artistsHasMore = response.hasMore;
-        this.artistsLastKey = response.lastKey;
-        this.loadingArtists = false;
-        this.checkSubscriptions();
-      },
-      error: (error) => {
-        console.error('Error loading artists:', error);
-        this.loadingArtists = false;
-      },
-    });
-
+  loadArtistsAndAlbums() {
     // Load albums
     this.loadingAlbums = true;
-    this.discoverService.getAlbumsByGenre(genre, 'newest', 10).subscribe({
+    this.discoverService.getFeed().subscribe({
       next: (response) => {
-        this.albums = response.albums;
-        this.albumsHasMore = response.hasMore;
-        this.albumsLastKey = response.lastKey;
+        this.albums = response.content
+        console.log(this.albums)
         this.loadingAlbums = false;
       },
       error: (error) => {
@@ -217,16 +170,6 @@ export class Discover implements OnInit {
         this.loadingAlbums = false;
       },
     });
-  }
-
-  selectArtist(artist: Artist) {
-    if (this.selectedArtist?.artistId === artist.artistId) {
-      return; // Already selected
-    }
-
-    this.selectedArtist = artist;
-    this.selectedAlbum = undefined;
-    this.loadContentForArtist(artist);
   }
 
   selectAlbum(album: Album) {
@@ -237,37 +180,6 @@ export class Discover implements OnInit {
     this.selectedAlbum = album;
     this.selectedArtist = undefined;
     this.loadContentForAlbum(album);
-  }
-
-  loadContentForArtist(artist: Artist) {
-    if (!this.selectedGenre) return;
-
-    this.loadingContent = true;
-    this.content = [];
-    this.contentLastKey = undefined;
-
-    this.musicContentService
-      .getMusicContentByArtistId(artist.artistId)
-      .subscribe({
-        next: async (response) => {
-          this.content = response.content;
-          this.contentHasMore = response.hasMore;
-          this.contentLastKey = response.lastKey;
-
-          // Add artist names to content
-
-          this.loadingContent = false;
-        },
-        error: (error) => {
-          console.error('Error loading content for artist:', error);
-          this.messageService.add({
-            severity: 'error',
-            summary: 'Error',
-            detail: 'Failed to load content for artist',
-          });
-          this.loadingContent = false;
-        },
-      });
   }
 
   loadContentForAlbum(album: Album) {
@@ -295,26 +207,6 @@ export class Discover implements OnInit {
         this.loadingContent = false;
       },
     });
-  }
-
-  loadMoreArtists() {
-    if (!this.selectedGenre || !this.artistsLastKey) return;
-
-    this.loadingMoreArtists = true;
-    this.discoverService
-      .getArtistsByGenre(this.selectedGenre, 10, this.artistsLastKey)
-      .subscribe({
-        next: (response) => {
-          this.artists = [...this.artists, ...response.artists];
-          this.artistsHasMore = response.hasMore;
-          this.artistsLastKey = response.lastKey;
-          this.loadingMoreArtists = false;
-        },
-        error: (error) => {
-          console.error('Error loading more artists:', error);
-          this.loadingMoreArtists = false;
-        },
-      });
   }
 
   loadMoreAlbums() {
@@ -692,7 +584,7 @@ isGenreSubscribed: boolean = false;
           });
           this.isArtistSubscribed[artist.artistId] = true;
           if (this.selectedGenre) {
-            this.loadArtistsAndAlbums(this.selectedGenre);
+            this.loadArtistsAndAlbums();
           }
         },
         error: (error) => {
@@ -725,7 +617,7 @@ isGenreSubscribed: boolean = false;
           });
           this.isGenreSubscribed = true;
           if (this.selectedGenre) {
-            this.loadArtistsAndAlbums(this.selectedGenre);
+            this.loadArtistsAndAlbums();
           }
         },
         error: (error) => {

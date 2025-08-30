@@ -1,207 +1,23 @@
 <div class="p-4">
   <div class="text-center mb-4">
-    <h1 class="text-3xl font-bold text-primary">Content Discovery</h1>
+    <h1 class="text-3xl font-bold text-primary">Personalized feed</h1>
     <p class="text-color-secondary">
       Filter music content by genre, artist and album
     </p>
   </div>
 
-  <!-- Genre Selection -->
-  <div class="mb-4">
-    <p-panel header="Genre Selection" [toggleable]="true" [collapsed]="false">
-      <div class="flex flex-column gap-3">
-        <div class="flex flex-column gap-2">
-          <label for="genreDropdown" class="font-semibold">Select genre:</label>
-          <p-select
-            id="genreDropdown"
-            [options]="genreOptions"
-            [(ngModel)]="selectedGenre"
-            optionLabel="label"
-            optionValue="value"
-            placeholder="-- Select genre --"
-            [loading]="loadingGenres"
-            (onChange)="onGenreChange($event)"
-            styleClass="w-full md:w-20rem"
-            [filter]="true"
-            filterBy="label"
-          >
-            <ng-template pTemplate="selectedItem">
-              <div
-                *ngIf="selectedGenreData"
-                class="flex align-items-center gap-2"
-              >
-                <span>{{ selectedGenreData.genre }}</span>
-                <p-badge
-                  [value]="selectedGenreData.totalItems"
-                  severity="info"
-                ></p-badge>
-              </div>
-            </ng-template>
-            <ng-template pTemplate="item" let-option>
-              <div
-                class="flex align-items-center justify-content-between w-full"
-              >
-                <span>{{ option.label }}</span>
-                <div class="flex gap-2">
-                  <p-badge
-                    [value]="getGenreByName(option.value)?.contentCount || 0"
-                    severity="success"
-                    [title]="'Songs'"
-                  ></p-badge>
-                  <p-badge
-                    [value]="getGenreByName(option.value)?.artistCount || 0"
-                    severity="warn"
-                    [title]="'Artists'"
-                  ></p-badge>
-                  <p-badge
-                    [value]="getGenreByName(option.value)?.albumCount || 0"
-                    severity="info"
-                    [title]="'Albums'"
-                  ></p-badge>
-                </div>
-              </div>
-            </ng-template>
-          </p-select>
-          <p-button
-            icon="pi pi-bell"
-            severity="info"
-            size="small"
-            (onClick)="subscribeGenre(this.selectedGenre)"
-            pTooltip="Subscribe"
-            tooltipPosition="top"
-            pTooltip="{{
-              isGenreSubscribed ? 'Already subscribed' : 'Subscribe'
-            }}"
-            tooltipPosition="top"
-            [disabled]="isGenreSubscribed"
-          ></p-button>
-        </div>
-      </div>
-    </p-panel>
-  </div>
-
   <!-- Artists and Albums Section -->
-  <div *ngIf="selectedGenre" class="mb-4">
+  <div class="mb-4">
     <div class="grid">
-      <!-- Artists Panel -->
-      <div class="col-12 md:col-6">
-        <p-panel header="Artists" [toggleable]="true" [collapsed]="false">
-          <div class="flex flex-column gap-3">
-            <div *ngIf="loadingArtists" class="text-center">
-              <p-progressSpinner strokeWidth="4"></p-progressSpinner>
-              <p class="mt-2">Loading artists...</p>
-            </div>
-
-            <div
-              *ngIf="!loadingArtists && artists.length === 0 && selectedGenre"
-              class="text-center p-4"
-            >
-              <i
-                class="pi pi-info-circle text-3xl text-color-secondary mb-2"
-              ></i>
-              <p class="text-color-secondary">No artists for selected genre</p>
-            </div>
-
-            <div
-              *ngFor="let artist of artists"
-              class="border-1 border-300 border-round p-3 hover:bg-hover cursor-pointer transition-colors transition-duration-150"
-              (click)="selectArtist(artist)"
-              [class.bg-primary-50]="
-                selectedArtist?.artistId === artist.artistId
-              "
-            >
-              <div class="flex align-items-center gap-3">
-                <p-avatar
-                  [image]="artist.imageUrl || undefined"
-                  [label]="
-                    !artist.imageUrl
-                      ? artist.name.charAt(0).toUpperCase()
-                      : undefined
-                  "
-                  shape="circle"
-                  size="large"
-                  styleClass="flex-shrink-0"
-                >
-                </p-avatar>
-                <div class="flex-1">
-                  <h3 class="text-lg font-semibold m-0 mb-1">
-                    {{ artist.name }}
-                  </h3>
-                  <div class="flex flex-wrap gap-1 mb-2">
-                    <p-tag
-                      [value]="artist.primaryGenre"
-                      severity="info"
-                      [rounded]="true"
-                    ></p-tag>
-                    <p-tag
-                      *ngFor="let genre of artist.genres.slice(0, 2)"
-                      [value]="genre"
-                      severity="secondary"
-                      [rounded]="true"
-                    ></p-tag>
-                  </div>
-                  <p
-                    *ngIf="artist.country || artist.formedYear"
-                    class="text-sm text-color-secondary m-0"
-                  >
-                    <span *ngIf="artist.country">{{ artist.country }}</span>
-                    <span *ngIf="artist.country && artist.formedYear"> • </span>
-                    <span *ngIf="artist.formedYear">{{
-                      artist.formedYear
-                    }}</span>
-                  </p>
-                </div>
-                <p-button
-                  icon="pi pi-bell"
-                  severity="info"
-                  size="small"
-                  (onClick)="subscribeArtist(artist)"
-                  pTooltip="Subscribe"
-                  tooltipPosition="top"
-                  pTooltip="{{
-                    isArtistSubscribed[artist.artistId]
-                      ? 'Already subscribed'
-                      : 'Subscribe'
-                  }}"
-                  tooltipPosition="top"
-                  [disabled]="isArtistSubscribed[artist.artistId]"
-                ></p-button>
-              </div>
-            </div>
-
-            <div *ngIf="artistsHasMore && !loadingArtists" class="text-center">
-              <p-button
-                label="Load more artists"
-                icon="pi pi-chevron-down"
-                [loading]="loadingMoreArtists"
-                (onClick)="loadMoreArtists()"
-                styleClass="p-button-outlined"
-              >
-              </p-button>
-            </div>
-          </div>
-        </p-panel>
-      </div>
-
       <!-- Albums Panel -->
-      <div class="col-12 md:col-6">
+      <div class="col-12 md:col-12">
         <p-panel header="Albums" [toggleable]="true" [collapsed]="false">
           <div class="flex flex-column gap-3">
             <div *ngIf="loadingAlbums" class="text-center">
               <p-progressSpinner strokeWidth="4"></p-progressSpinner>
               <p class="mt-2">Loading albums...</p>
             </div>
-
-            <div
-              *ngIf="!loadingAlbums && albums.length === 0 && selectedGenre"
-              class="text-center p-4"
-            >
-              <i
-                class="pi pi-info-circle text-3xl text-color-secondary mb-2"
-              ></i>
-              <p class="text-color-secondary">No albums for selected genre</p>
-            </div>
-
+ 
             <div
               *ngFor="let album of albums"
               class="border-1 border-300 border-round p-3 hover:bg-hover cursor-pointer transition-colors transition-duration-150"
@@ -277,7 +93,7 @@
   </div>
 
   <!-- Content Section -->
-  <div *ngIf="(selectedArtist || selectedAlbum) && selectedGenre" class="mb-4">
+  <div *ngIf="(selectedArtist || selectedAlbum)" class="mb-4">
     <p-panel
       [header]="getContentPanelTitle()"
       [toggleable]="true"

@@ -157,6 +157,11 @@ export class MusicContentService {
     return this.http.delete<DeleteMusicContentResponse>(this.apiUrl, {params: httpParams});
   }
 
+  addToHistory(contentId: string): Observable<{message: String}> {
+    const httpParams = new HttpParams().set('contentId', contentId);
+    return this.http.post<{message: String}>(API_URL + 'history', {}, {params: httpParams});
+  }
+
   //Helper methods to validate files
 
   validateAudioFile(file: File): { valid: boolean; error?: string } {
