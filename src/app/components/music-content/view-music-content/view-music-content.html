@@ -10,6 +10,77 @@
     ></p-button>
   </div>
 
+  <!-- Now Playing & Transcription Floating Panel -->
+  <div 
+    *ngIf="playbackState.isPlaying && getCurrentlyPlayingSong()" 
+    class="fixed bottom-4 right-4 z-5 bg-white border-round shadow-6 p-3"
+    style="max-width: 300px; z-index: 1000;"
+  >
+    <div class="flex align-items-center gap-3 mb-2">
+      <img
+        [src]="getCoverImageUrl(getCurrentlyPlayingSong()!)"
+        [alt]="getCurrentlyPlayingSong()!.title + ' cover'"
+        class="w-3rem h-3rem object-fit-cover border-round flex-shrink-0"
+      />
+      <div class="flex-1 min-w-0">
+        <div class="font-semibold text-sm truncate">
+          {{ getCurrentlyPlayingSong()!.title }}
+        </div>
+        <div class="text-xs text-600 truncate">
+          {{ getCurrentlyPlayingSong()!.artistName }}
+        </div>
+      </div>
+    </div>
+    
+    <div class="flex gap-2 justify-content-center">
+      <p-button
+        [icon]="playbackState.isPlaying ? 'pi pi-pause' : 'pi pi-play'"
+        [severity]="playbackState.isPlaying ? 'danger' : 'success'"
+        size="small"
+        (onClick)="togglePlayback(getCurrentlyPlayingSong()!)"
+        pTooltip="Toggle Playback"
+      ></p-button>
+      
+      <p-button
+        icon="pi pi-file-word"
+        severity="info"
+        size="small"
+        (onClick)="showTranscription()"
+        [disabled]="!hasTranscription()"
+        [loading]="isLoadingTranscription"
+        [pTooltip]="hasTranscription() ? 'Show Transcription' : 'Transcription not available'"
+      ></p-button>
+    </div>
+    
+    <!-- Transcription Status -->
+    <div *ngIf="currentTranscription" class="text-xs text-center mt-2">
+      <span 
+        *ngIf="currentTranscription.status === 'COMPLETED'"
+        class="text-green-600"
+      >
+        <i class="pi pi-check mr-1"></i>Transcription Ready
+      </span>
+      <span 
+        *ngIf="currentTranscription.status === 'PROCESSING'"
+        class="text-orange-600"
+      >
+        <i class="pi pi-spin pi-spinner mr-1"></i>Processing...
+      </span>
+      <span 
+        *ngIf="currentTranscription.status === 'NOT_FOUND'"
+        class="text-600"
+      >
+        <i class="pi pi-exclamation-triangle mr-1"></i>No transcription
+      </span>
+      <span 
+        *ngIf="currentTranscription.status === 'FAILED'"
+        class="text-red-600"
+      >
+        <i class="pi pi-times mr-1"></i>Failed
+      </span>
+    </div>
+  </div>
+
   <!-- Loading State -->
   <div
     class="flex justify-content-center align-items-center"
@@ -50,6 +121,7 @@
     >
       <p-card
         styleClass="h-full shadow-2 hover:shadow-4 transition-all transition-duration-200"
+        [class.border-primary]="isCurrentlyPlaying(content.contentId)"
       >
         <div class="text-center mb-3 relative">
           <img
@@ -72,6 +144,15 @@
               (onClick)="togglePlayback(content)"
             >
             </p-button>
+          </div>
+          
+          <!-- Now Playing Indicator -->
+          <div
+            *ngIf="isCurrentlyPlaying(content.contentId)"
+            class="absolute top-0 left-0 bg-primary text-white px-2 py-1 border-round-top-left border-round-bottom-right"
+            style="font-size: 0.75rem;"
+          >
+            <i class="pi pi-volume-up mr-1"></i>Now Playing
           </div>
         </div>
         <!-- Song Name -->
@@ -99,7 +180,7 @@
         <p-divider></p-divider>
 
         <!-- Actions -->
-        <div class="flex gap-2 justify-content-center mt-3">
+        <div class="flex gap-2 justify-content-center mt-3 flex-wrap">
           <p-button
             [icon]="
               isCurrentlyPlaying(content.contentId)
@@ -176,6 +257,8 @@
     ></p-button>
   </div>
 </div>
+
+<!-- Song Details Dialog -->
 <p-dialog
   header="Song Details"
   [(visible)]="displayDialog"
@@ -234,6 +317,102 @@
     </div>
   </div>
 </p-dialog>
+
+<!-- Transcription Dialog -->
+<p-dialog
+  header="Song Transcription"
+  [(visible)]="transcriptionDialogVisible"
+  [modal]="true"
+  [closable]="true"
+  [style]="{ width: '70vw', maxWidth: '800px', maxHeight: '80vh' }"
+  [draggable]="false"
+  [resizable]="true"
+>
+  <div *ngIf="currentTranscription">
+    <!-- Transcription Header Info -->
+    <div class="mb-4 p-3 border-round bg-gray-50">
+      <div class="flex justify-content-between align-items-center mb-2">
+        <h4 class="m-0">
+          {{ getCurrentlyPlayingSong()?.title || 'Unknown Song' }}
+        </h4>
+        <p-chip 
+          [label]="currentTranscription.status" 
+          [class]="'status-' + currentTranscription.status.toLowerCase()"
+        ></p-chip>
+      </div>
+      <div class="text-sm text-600">
+        <div *ngIf="currentTranscription.confidence">
+          Confidence: {{ (currentTranscription.confidence * 100).toFixed(1) }}%
+        </div>
+        <div *ngIf="currentTranscription.wordCount">
+          Word Count: {{ currentTranscription.wordCount }}
+        </div>
+      </div>
+    </div>
+
+    <!-- Loading State -->
+    <div *ngIf="isLoadingTranscription" class="flex justify-center items-center py-8">
+      <p-progressSpinner strokeWidth="4"></p-progressSpinner>
+      <span class="ml-3">Loading transcription...</span>
+    </div>
+
+    <!-- Error State -->
+    <div *ngIf="transcriptionError" class="text-center py-8">
+      <i class="pi pi-exclamation-triangle text-4xl text-orange-500 mb-3"></i>
+      <p class="text-orange-600">{{ transcriptionError }}</p>
+    </div>
+
+    <!-- Transcription Content -->
+    <div *ngIf="!isLoadingTranscription && !transcriptionError && currentTranscription.status === 'COMPLETED'">
+      <!-- HTML Transcription with Styling -->
+      <div 
+        *ngIf="currentTranscription.html"
+        class="transcription-content"
+        [innerHTML]="currentTranscription.html"
+      ></div>
+      
+      <!-- Fallback Text Display -->
+      <div 
+        *ngIf="!currentTranscription.html && currentTranscription.text"
+        class="transcription-text p-3 border-round bg-white"
+        style="white-space: pre-wrap; line-height: 1.6; font-size: 14px;"
+      >
+        {{ currentTranscription.text }}
+      </div>
+    </div>
+
+    <!-- Status Messages -->
+    <div *ngIf="currentTranscription.status === 'PROCESSING'" class="text-center py-8">
+      <i class="pi pi-spin pi-spinner text-4xl text-blue-500 mb-3"></i>
+      <p class="text-blue-600">Transcription is being processed. Please check back later.</p>
+    </div>
+
+    <div *ngIf="currentTranscription.status === 'NOT_FOUND'" class="text-center py-8">
+      <i class="pi pi-file-word text-4xl text-gray-400 mb-3"></i>
+      <p class="text-600">No transcription is available for this song.</p>
+    </div>
+
+    <div *ngIf="currentTranscription.status === 'FAILED'" class="text-center py-8">
+      <i class="pi pi-times-circle text-4xl text-red-500 mb-3"></i>
+      <p class="text-red-600">
+        Transcription processing failed.
+        <span *ngIf="currentTranscription.errorMessage">
+          <br>{{ currentTranscription.errorMessage }}
+        </span>
+      </p>
+    </div>
+  </div>
+
+  <!-- Dialog Footer -->
+  <div class="flex justify-end pt-4 mt-4 border-top-1 surface-border">
+    <p-button
+      label="Close"
+      severity="secondary"
+      (onClick)="transcriptionDialogVisible = false"
+    ></p-button>
+  </div>
+</p-dialog>
+
 <p-toast></p-toast>
 
 <!-- Rate Dialog -->

@@ -403,9 +403,12 @@ export class Discover implements OnInit {
     return 'Content';
   }
 
-  // Music playback functionality from ViewMusicContent
-  playContent(content: MusicContent): void {
-    this.stopCurrentPlayback();
+
+playContent(content: MusicContent): void {
+
+  this.musicContentService.addToHistory(content.contentId).subscribe({
+    next: async () => {
+      this.stopCurrentPlayback();
     if (content.contentId === this.playbackState.currentContentId) {
       this.playbackState.currentAudio?.play();
       this.playbackState.isPlaying = true;
@@ -441,7 +444,55 @@ export class Discover implements OnInit {
       currentAudio: audio,
       currentContentId: content.contentId,
     };
+    },
+    error: async (err) => {
+      // Ako padne upis istorije, svejedno puštamo pesmu
+      console.error('Failed to add to history', err);
+    }
+  });
+
+    
   }
+
+  // Music playback functionality from ViewMusicContent
+  // playContent(content: MusicContent): void {
+  //   this.stopCurrentPlayback();
+  //   if (content.contentId === this.playbackState.currentContentId) {
+  //     this.playbackState.currentAudio?.play();
+  //     this.playbackState.isPlaying = true;
+  //     return;
+  //   }
+  //   const audio = new Audio(content.streamURL);
+
+  //   audio.addEventListener('canplay', () => {
+  //     audio.play().catch((error) => {
+  //       this.messageService.add({
+  //         severity: 'error',
+  //         summary: 'Error',
+  //         detail: 'Failed to play audio',
+  //       });
+  //     });
+  //   });
+
+  //   audio.addEventListener('ended', () => {
+  //     this.resetPlaybackState();
+  //   });
+
+  //   audio.addEventListener('error', (e) => {
+  //     this.messageService.add({
+  //       severity: 'error',
+  //       summary: 'Error',
+  //       detail: 'Failed to load audio stream',
+  //     });
+  //     this.resetPlaybackState();
+  //   });
+
+  //   this.playbackState = {
+  //     isPlaying: true,
+  //     currentAudio: audio,
+  //     currentContentId: content.contentId,
+  //   };
+  // }
 
   stopCurrentPlayback(): void {
     if (this.playbackState.currentAudio) {
