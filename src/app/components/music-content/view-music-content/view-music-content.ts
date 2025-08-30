@@ -195,44 +195,133 @@ export class ViewMusicContent implements OnInit {
     return content.coverImageUrl || 'assets/images/default-cover.jpg';
   }
 
-  playContent(content: MusicContent): void {
-    this.stopCurrentPlayback();
-    if (content.contentId === this.playbackState.currentContentId) {
-      this.playbackState.currentAudio?.play();
-      this.playbackState.isPlaying = true;
-      return;
-    }
-    const audio = new Audio(content.streamURL);
+playContent(content: MusicContent): void {
+  // prvo dodaj u istoriju
+  this.musicContentService.addToHistory(content.contentId).subscribe({
+    next: () => {
+      this.stopCurrentPlayback();
 
-    audio.addEventListener('canplay', () => {
-      audio.play().catch((error) => {
+      if (content.contentId === this.playbackState.currentContentId) {
+        this.playbackState.currentAudio?.play();
+        this.playbackState.isPlaying = true;
+        return;
+      }
+
+      const audio = new Audio(content.streamURL);
+
+      audio.addEventListener('canplay', () => {
+        audio.play().catch(() => {
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Error',
+            detail: 'Failed to play audio',
+          });
+        });
+      });
+
+      audio.addEventListener('ended', () => {
+        this.resetPlaybackState();
+      });
+
+      audio.addEventListener('error', () => {
         this.messageService.add({
           severity: 'error',
           summary: 'Error',
-          detail: 'Failed to play audio',
+          detail: 'Failed to load audio stream',
+        });
+        this.resetPlaybackState();
+      });
+
+      this.playbackState = {
+        isPlaying: true,
+        currentAudio: audio,
+        currentContentId: content.contentId,
+      };
+    },
+    error: (err) => {
+      // ako padne upis istorije, svejedno puštamo pesmu
+      console.error('Failed to add to history', err);
+
+      this.stopCurrentPlayback();
+
+      if (content.contentId === this.playbackState.currentContentId) {
+        this.playbackState.currentAudio?.play();
+        this.playbackState.isPlaying = true;
+        return;
+      }
+
+      const audio = new Audio(content.streamURL);
+
+      audio.addEventListener('canplay', () => {
+        audio.play().catch(() => {
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Error',
+            detail: 'Failed to play audio',
+          });
         });
       });
-    });
 
-    audio.addEventListener('ended', () => {
-      this.resetPlaybackState();
-    });
-
-    audio.addEventListener('error', (e) => {
-      this.messageService.add({
-        severity: 'error',
-        summary: 'Error',
-        detail: 'Failed to load audio stream',
+      audio.addEventListener('ended', () => {
+        this.resetPlaybackState();
       });
-      this.resetPlaybackState();
-    });
 
-    this.playbackState = {
-      isPlaying: true,
-      currentAudio: audio,
-      currentContentId: content.contentId,
-    };
-  }
+      audio.addEventListener('error', () => {
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: 'Failed to load audio stream',
+        });
+        this.resetPlaybackState();
+      });
+
+      this.playbackState = {
+        isPlaying: true,
+        currentAudio: audio,
+        currentContentId: content.contentId,
+      };
+    },
+  });
+}
+
+  // playContent(content: MusicContent): void {
+  //   this.stopCurrentPlayback();
+  //   if (content.contentId === this.playbackState.currentContentId) {
+  //     this.playbackState.currentAudio?.play();
+  //     this.playbackState.isPlaying = true;
+  //     return;
+  //   }
+  //   const audio = new Audio(content.streamURL);
+
+  //   audio.addEventListener('canplay', () => {
+  //     audio.play().catch((error) => {
+  //       this.messageService.add({
+  //         severity: 'error',
+  //         summary: 'Error',
+  //         detail: 'Failed to play audio',
+  //       });
+  //     });
+  //   });
+
+  //   audio.addEventListener('ended', () => {
+  //     this.resetPlaybackState();
+  //   });
+
+  //   audio.addEventListener('error', (e) => {
+  //     this.messageService.add({
+  //       severity: 'error',
+  //       summary: 'Error',
+  //       detail: 'Failed to load audio stream',
+  //     });
+  //     this.resetPlaybackState();
+  //   });
+
+  //   this.playbackState = {
+  //     isPlaying: true,
+  //     currentAudio: audio,
+  //     currentContentId: content.contentId,
+  //   };
+  // }
 
   stopCurrentPlayback(): void {
     if (this.playbackState.currentAudio) {
@@ -319,7 +408,7 @@ export class ViewMusicContent implements OnInit {
   getAverageRating(): string {
     if (this.selectedContentRatings.length === 0) return '0.0';
     const average =
-      this.selectedContentRatings.reduce((sum, r) => sum + r.stars, 0) /
+      this.selectedContentRatings.reduce((sum, r) => sum + Number(r.stars), 0) /
       this.selectedContentRatings.length;
     return average.toFixed(1);
   }
