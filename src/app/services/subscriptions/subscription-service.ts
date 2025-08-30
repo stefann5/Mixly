@@ -81,9 +81,8 @@ export class SubscriptionsService {
     return this.http.post<CreateSubscriptionResponse>(this.apiUrl, subscriptionData);
   }
 
-  notifySubscribers(targetName: string): Observable<CreateSubscriptionResponse> {
-    const httpParams = new HttpParams().set('targetName', targetName);
-    return this.http.post<CreateSubscriptionResponse>(this.notificationApi, {}, {params: httpParams});
+  notifySubscribers(subscriptions: Subscription[]): Observable<CreateSubscriptionResponse> {
+    return this.http.post<CreateSubscriptionResponse>(this.notificationApi, {subscriptions});
   }
 
   deleteSubscription(subscriptionId: string): Observable<{ message: string }> {
