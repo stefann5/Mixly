@@ -44,6 +44,7 @@ export interface GetSubscriptionsParams {
   limit?: number;
   lastKey?: string;
   username?: string;
+  targetName?: string;
 }
 
 @Injectable({
@@ -51,6 +52,7 @@ export interface GetSubscriptionsParams {
 })
 export class SubscriptionsService {
   private readonly apiUrl = `${API_URL}subscription`;
+  private readonly notificationApi = `${API_URL}notification`;
 
   constructor(private http: HttpClient) {}
 
@@ -67,9 +69,9 @@ export class SubscriptionsService {
     if (params.lastKey) {
       httpParams = httpParams.set('lastKey', params.lastKey);
     }
-    
-    if (params.username) {
-      httpParams = httpParams.set('username', params.username);
+
+    if (params.targetName) {
+      httpParams = httpParams.set('targetName', params.targetName);
     }
 
     return this.http.get<GetSubscriptionsResponse>(this.apiUrl, { params: httpParams });
@@ -78,6 +80,12 @@ export class SubscriptionsService {
   createSubscription(subscriptionData: CreateSubscriptionRequest): Observable<CreateSubscriptionResponse> {
     return this.http.post<CreateSubscriptionResponse>(this.apiUrl, subscriptionData);
   }
+
+  notifySubscribers(targetName: string): Observable<CreateSubscriptionResponse> {
+    const httpParams = new HttpParams().set('targetName', targetName);
+    return this.http.post<CreateSubscriptionResponse>(this.notificationApi, {}, {params: httpParams});
+  }
+
   deleteSubscription(subscriptionId: string): Observable<{ message: string }> {
     return this.http.delete<{ message: string }>(`${this.apiUrl}/${subscriptionId}`);
   }

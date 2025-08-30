@@ -61,7 +61,7 @@ export class SubscriptionsComponent implements OnInit {
     const token = this.authService.getAccessToken();
     if (token){
       const decoded = this.parseJwt(token);
-    this.subscriptionService.getSubscriptions({username: decoded.username}).subscribe({
+    this.subscriptionService.getSubscriptions({}).subscribe({
       next: (data) => {
         this.subscriptions = data.subscriptions;
         this.hasMore = data.hasMore;

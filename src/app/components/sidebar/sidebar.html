@@ -23,6 +23,12 @@
     </p-button>
     }
     <p-button styleClass="w-full justify-content-left pl-3 h-3rem mb-2" [text]="true"
+        [routerLink]="'/dashboard/for-you'">
+        <ng-template pTemplate="content">
+            <span class="text-3xl">For You</span>
+        </ng-template>
+    </p-button>
+    <p-button styleClass="w-full justify-content-left pl-3 h-3rem mb-2" [text]="true"
         [routerLink]="'/dashboard/music-content'">
         <ng-template pTemplate="content">
             <span class="text-3xl">Music Content</span>

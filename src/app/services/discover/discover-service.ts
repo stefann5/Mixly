@@ -72,6 +72,11 @@ export interface AlbumResponse {
   lastKey?: string;
 }
 
+export interface FeedResponse{
+  content: Album[];
+  count: number;
+}
+
 export interface MusicContent {
   contentId: string;
   title: string;
@@ -118,6 +123,7 @@ export interface DiscoverFilters {
 })
 export class DiscoverService {
   private readonly API_BASE = `${API_URL}discover`;
+  private readonly MUSIC_BASE = `${API_URL}music-content`;
 
   constructor(private http: HttpClient) {}
 
@@ -162,6 +168,10 @@ export class DiscoverService {
     }
 
     return this.http.get<AlbumResponse>(`${this.API_BASE}/albums`, { params });
+  }
+  
+  getFeed(): Observable<FeedResponse> {
+    return this.http.get<FeedResponse>(`${this.MUSIC_BASE}/feed`);
   }
 
   /**
