@@ -10,6 +10,77 @@
     ></p-button>
   </div>
 
+  <!-- Now Playing & Transcription Floating Panel -->
+  <div 
+    *ngIf="playbackState.isPlaying && getCurrentlyPlayingSong()" 
+    class="fixed bottom-4 right-4 z-5 bg-white border-round shadow-6 p-3"
+    style="max-width: 300px; z-index: 1000;"
+  >
+    <div class="flex align-items-center gap-3 mb-2">
+      <img
+        [src]="getCoverImageUrl(getCurrentlyPlayingSong()!)"
+        [alt]="getCurrentlyPlayingSong()!.title + ' cover'"
+        class="w-3rem h-3rem object-fit-cover border-round flex-shrink-0"
+      />
+      <div class="flex-1 min-w-0">
+        <div class="font-semibold text-sm truncate">
+          {{ getCurrentlyPlayingSong()!.title }}
+        </div>
+        <div class="text-xs text-600 truncate">
+          {{ getCurrentlyPlayingSong()!.artistName }}
+        </div>
+      </div>
+    </div>
+    
+    <div class="flex gap-2 justify-content-center">
+      <p-button
+        [icon]="playbackState.isPlaying ? 'pi pi-pause' : 'pi pi-play'"
+        [severity]="playbackState.isPlaying ? 'danger' : 'success'"
+        size="small"
+        (onClick)="togglePlayback(getCurrentlyPlayingSong()!)"
+        pTooltip="Toggle Playback"
+      ></p-button>
+      
+      <p-button
+        icon="pi pi-file-word"
+        severity="info"
+        size="small"
+        (onClick)="showTranscription()"
+        [disabled]="!hasTranscription()"
+        [loading]="isLoadingTranscription"
+        [pTooltip]="hasTranscription() ? 'Show Transcription' : 'Transcription not available'"
+      ></p-button>
+    </div>
+    
+    <!-- Transcription Status -->
+    <div *ngIf="currentTranscription" class="text-xs text-center mt-2">
+      <span 
+        *ngIf="currentTranscription.status === 'COMPLETED'"
+        class="text-green-600"
+      >
+        <i class="pi pi-check mr-1"></i>Transcription Ready
+      </span>
+      <span 
+        *ngIf="currentTranscription.status === 'PROCESSING'"
+        class="text-orange-600"
+      >
+        <i class="pi pi-spin pi-spinner mr-1"></i>Processing...
+      </span>
+      <span 
+        *ngIf="currentTranscription.status === 'NOT_FOUND'"
+        class="text-600"
+      >
+        <i class="pi pi-exclamation-triangle mr-1"></i>No transcription
+      </span>
+      <span 
+        *ngIf="currentTranscription.status === 'FAILED'"
+        class="text-red-600"
+      >
+        <i class="pi pi-times mr-1"></i>Failed
+      </span>
+    </div>
+  </div>
+
   <!-- Loading State -->
   <div
     class="flex justify-content-center align-items-center"
@@ -50,20 +121,40 @@
     >
       <p-card
         styleClass="h-full shadow-2 hover:shadow-4 transition-all transition-duration-200"
+        [class.border-primary]="isCurrentlyPlaying(content.contentId)"
       >
-      <div class="text-center mb-3 relative">
-        <img [src]="getCoverImageUrl(content)"
-             [alt]="content.title + ' cover'"
-             class="w-full h-12rem object-fit-cover border-round"/>
-        <div class="absolute inset-0 flex align-items-center justify-content-center bg-black-alpha-50 opacity-0 hover:opacity-100 trasition-all transition-duration-200 border-round">
-            <p-button [icon]="isCurrentlyPlaying(content.contentId) ? 'pi pi-pause' : 'pi pi-play'"
-                      severity="contrast"
-                      [rounded]="true"
-                      size="large"
-                      (onClick)="togglePlayback(content)">
+        <div class="text-center mb-3 relative">
+          <img
+            [src]="getCoverImageUrl(content)"
+            [alt]="content.title + ' cover'"
+            class="w-full h-12rem object-fit-cover border-round"
+          />
+          <div
+            class="absolute inset-0 flex align-items-center justify-content-center bg-black-alpha-50 opacity-0 hover:opacity-100 trasition-all transition-duration-200 border-round"
+          >
+            <p-button
+              [icon]="
+                isCurrentlyPlaying(content.contentId)
+                  ? 'pi pi-pause'
+                  : 'pi pi-play'
+              "
+              severity="contrast"
+              [rounded]="true"
+              size="large"
+              (onClick)="togglePlayback(content)"
+            >
             </p-button>
+          </div>
+          
+          <!-- Now Playing Indicator -->
+          <div
+            *ngIf="isCurrentlyPlaying(content.contentId)"
+            class="absolute top-0 left-0 bg-primary text-white px-2 py-1 border-round-top-left border-round-bottom-right"
+            style="font-size: 0.75rem;"
+          >
+            <i class="pi pi-volume-up mr-1"></i>Now Playing
+          </div>
         </div>
-      </div>
         <!-- Song Name -->
         <h3 class="text-xl font-bold text-center mb-3 text-900">
           {{ content.title }}
@@ -83,19 +174,27 @@
 
         <!-- Genre using Chips -->
         <h5 class="mb-4">
-          {{content.genre}}
+          {{ content.genre }}
         </h5>
 
         <p-divider></p-divider>
 
         <!-- Actions -->
-        <div class="flex gap-2 justify-content-center mt-3">
+        <div class="flex gap-2 justify-content-center mt-3 flex-wrap">
           <p-button
-            [icon]="isCurrentlyPlaying(content.contentId) ? 'pi pi-pause' : 'pi pi-play'"
-            [severity]="isCurrentlyPlaying(content.contentId) ? 'danger' : 'success'"
+            [icon]="
+              isCurrentlyPlaying(content.contentId)
+                ? 'pi pi-pause'
+                : 'pi pi-play'
+            "
+            [severity]="
+              isCurrentlyPlaying(content.contentId) ? 'danger' : 'success'
+            "
             size="small"
             (onClick)="togglePlayback(content)"
-            [pTooltip]="isCurrentlyPlaying(content.contentId) ? 'Pause' : 'Play'"
+            [pTooltip]="
+              isCurrentlyPlaying(content.contentId) ? 'Pause' : 'Play'
+            "
             tooltipPosition="top"
           ></p-button>
           <p-button
@@ -104,7 +203,8 @@
             size="small"
             (onClick)="viewSongDetails(content)"
             pTooltip="View Details"
-            tooltipPosition="top"></p-button>
+            tooltipPosition="top"
+          ></p-button>
           <p-button
             icon="pi pi-pencil"
             severity="danger"
@@ -124,6 +224,23 @@
             pTooltip="Delete Song"
             tooltipPosition="top"
           ></p-button>
+          <p-button
+            icon="pi pi-star"
+            severity="info"
+            size="small"
+            (onClick)="openRateDialog(content)"
+            pTooltip="Rate"
+            [disabled]="isSongRated(content.contentId)"
+            tooltipPosition="top"
+          ></p-button>
+          <p-button
+            icon="pi pi-bell"
+            severity="info"
+            size="small"
+            (onClick)="openSubscribeDialog(content)"
+            pTooltip="Subscribe"
+            tooltipPosition="top"
+          ></p-button>
         </div>
       </p-card>
     </div>
@@ -141,158 +258,353 @@
   </div>
 </div>
 
-<!-- Enhanced Song Details Dialog with Transcription -->
+<!-- Song Details Dialog -->
 <p-dialog
-    header="Song Details"
-    [(visible)]="displayDialog"
-    [modal]="true"
-    [style]="{ width: '80vw', minWidth: '320px', height: '80vh' }"
-    [draggable]="false"
-    [resizable]="true">
-    
-    <div *ngIf="selectedContent">
-        <!-- Song Header -->
-        <div class="flex gap-3 align-items-start mb-4">
-            <img [src]="getCoverImageUrl(selectedContent)"
-                 [alt]="selectedContent.title + ' cover'"
-                 class="w-8rem h-8rem object-fit-cover border-round flex-shrink-0"/>
-            <div class="flex-1">
-                <h2 class="text-2xl font-bold mb-2 text-900">{{ selectedContent.title }}</h2>
-                <div class="mb-2"><strong>Artist:</strong> {{selectedContent.artistName}}</div>
-                <div class="mb-2"><strong>Album:</strong> {{getAlbum(selectedContent)}}</div>
-                <div class="mb-2"><strong>Genre:</strong> {{selectedContent.genre}}</div>
-            </div>
+  header="Song Details"
+  [(visible)]="displayDialog"
+  [modal]="true"
+  [style]="{ width: '50vw', minWidth: '300px' }"
+  [draggable]="false"
+  [resizable]="false"
+>
+  <div *ngIf="selectedContent" class="flex flex-column gap-3">
+    <div class="flex gap-3 align-items-start">
+      <img
+        [src]="getCoverImageUrl(selectedContent)"
+        [alt]="selectedContent.title + ' cover'"
+        class="w-8rem h-8rem object-fit-cover border-round flex-shrink-0"
+      />
+      <div class="flex-1">
+        <h2 class="text-2xl font-bold mb-2 text-900">
+          {{ selectedContent.title }}
+        </h2>
+        <div class="mb-2">
+          <strong>Artist</strong> {{ selectedContent.artistName }}
         </div>
-
-        <!-- Playback Controls -->
-        <div class="text-center mb-4">
-            <p-button
-                [label]="isCurrentlyPlaying(selectedContent.contentId) ? 'Pause' : 'Play Song'"
-                [icon]="isCurrentlyPlaying(selectedContent.contentId) ? 'pi pi-pause' : 'pi pi-play'"
-                [severity]="isCurrentlyPlaying(selectedContent.contentId) ? 'danger' : 'success'"
-                (onClick)="togglePlayback(selectedContent)"
-                size="large"
-            ></p-button>
-        </div>
-
-        <p-divider></p-divider>
-
-        <!-- Tabbed Content -->
-        <p-tabs value="0">
-           <p-tablist>
-              <p-tab value="0">Song Info</p-tab>
-              <p-tab value="1">Transcription</p-tab>
-          </p-tablist>
-          <p-tabpanels>
-            <!-- Song Information Tab -->
-            <p-tabpanel header="Song Info" leftIcon="pi pi-info-circle" value="0">
-                <div class="p-3">
-                    <div class="grid">
-                        <div class="col-12 md:col-6">
-                            <h4>File Information</h4>
-                            <p><strong>Filename:</strong> {{selectedContent.filename}}</p>
-                            <p><strong>File Type:</strong> {{selectedContent.fileType}}</p>
-                            <p><strong>File Size:</strong> {{(selectedContent.fileSize / (1024 * 1024)).toFixed(2)}} MB</p>
-                        </div>
-                        <div class="col-12 md:col-6">
-                            <h4>Dates</h4>
-                            <p><strong>Created:</strong> {{selectedContent.createdAt | date:'medium'}}</p>
-                            <p><strong>Modified:</strong> {{selectedContent.lastModified | date:'medium'}}</p>
-                        </div>
-                    </div>
-                </div>
-            </p-tabpanel>
-
-            <!-- Transcription Tab -->
-            <p-tabpanel header="Transcription" leftIcon="pi pi-file-word" value="1">
-                <div class="p-3">
-                    <!-- Loading State -->
-                    <div *ngIf="isTranscriptionLoading(selectedContent.contentId)" 
-                         class="flex justify-content-center align-items-center p-5">
-                        <p-progressSpinner strokeWidth="3"></p-progressSpinner>
-                        <span class="ml-3">Loading transcription...</span>
-                    </div>
-
-                    <!-- Error State -->
-                    <div *ngIf="getTranscriptionError(selectedContent.contentId)" 
-                         class="text-center p-5">
-                        <i class="pi pi-exclamation-triangle text-4xl text-orange-500 mb-3"></i>
-                        <h4>Failed to Load Transcription</h4>
-                        <p class="text-600 mb-3">{{getTranscriptionError(selectedContent.contentId)}}</p>
-                        <p-button 
-                            label="Retry" 
-                            icon="pi pi-refresh" 
-                            severity="secondary"
-                            (onClick)="retryTranscription(selectedContent.contentId)">
-                        </p-button>
-                    </div>
-
-                    <!-- Not Found State -->
-                    <div *ngIf="getTranscriptionState(selectedContent.contentId).data?.status === 'NOT_FOUND'" 
-                         class="text-center p-5">
-                        <i class="pi pi-file-excel text-4xl text-500 mb-3"></i>
-                        <h4>No Transcription Available</h4>
-                        <p class="text-600">This song doesn't have a transcription yet.</p>
-                    </div>
-
-                    <!-- Processing State -->
-                    <div *ngIf="getTranscriptionState(selectedContent.contentId).data?.status === 'PROCESSING'" 
-                         class="text-center p-5">
-                        <i class="pi pi-clock text-4xl text-blue-500 mb-3"></i>
-                        <h4>Transcription in Progress</h4>
-                        <p class="text-600">The transcription is being processed. Please check back later.</p>
-                        <p-button 
-                            label="Refresh" 
-                            icon="pi pi-refresh" 
-                            severity="secondary"
-                            (onClick)="retryTranscription(selectedContent.contentId)">
-                        </p-button>
-                    </div>
-
-                    <!-- Failed State -->
-                    <div *ngIf="getTranscriptionState(selectedContent.contentId).data?.status === 'FAILED'" 
-                         class="text-center p-5">
-                        <i class="pi pi-times-circle text-4xl text-red-500 mb-3"></i>
-                        <h4>Transcription Failed</h4>
-                        <p class="text-600">
-                            {{getTranscriptionState(selectedContent.contentId).data?.errorMessage || 'The transcription process failed.'}}
-                        </p>
-                    </div>
-
-                    <!-- Completed Transcription -->
-                    <div *ngIf="hasTranscription(selectedContent.contentId)">
-                        <!-- Transcription Stats -->
-                        <div class="flex gap-4 mb-4 p-3 bg-blue-50 border-round">
-                            <div class="text-center">
-                                <div class="font-bold">{{getTranscriptionState(selectedContent.contentId).data?.wordCount || 0}}</div>
-                                <div class="text-sm text-600">Words</div>
-                            </div>
-                            <div class="text-center">
-                                <div class="font-bold">{{((getTranscriptionState(selectedContent.contentId).data?.confidence || 0) * 100).toFixed(1)}}%</div>
-                                <div class="text-sm text-600">Confidence</div>
-                            </div>
-                            <div class="text-center" *ngIf="getTranscriptionState(selectedContent.contentId).data?.completedAt">
-                                <div class="font-bold">{{getTranscriptionState(selectedContent.contentId).data?.completedAt | date:'short'}}</div>
-                                <div class="text-sm text-600">Completed</div>
-                            </div>
-                        </div>
-
-                        <!-- Interactive Transcription -->
-                        <div class="transcription-wrapper" 
-                             style="max-height: 400px; overflow-y: auto; border: 1px solid #e9ecef; border-radius: 6px; padding: 1rem;">
-                            <div [innerHTML]="getTranscriptionHtml(selectedContent.contentId)"></div>
-                        </div>
-
-                        <!-- Instructions -->
-                        <p-message severity="info" styleClass="mt-3">
-                            <span>Click on words to see timing information. Segments highlight based on confidence levels.</span>
-                        </p-message>
-                    </div>
-                </div>
-            </p-tabpanel>
-            </p-tabpanels>
-        </p-tabs>
+      </div>
+      <div class="mb-2">
+        <strong>Album: </strong> {{ getAlbum(selectedContent) }}
+      </div>
+      <div class="mb-2">
+        <strong>Genre: </strong> {{ selectedContent.genre }}
+      </div>
     </div>
+
+    <p-divider></p-divider>
+    <div class="text-center">
+      <p-button
+        [label]="
+          isCurrentlyPlaying(selectedContent.contentId) ? 'Pause' : 'Play Song'
+        "
+        [icon]="
+          isCurrentlyPlaying(selectedContent.contentId)
+            ? 'pi pi-pause'
+            : 'pi pi-play'
+        "
+        [severity]="
+          isCurrentlyPlaying(selectedContent.contentId) ? 'danger' : 'success'
+        "
+        (onClick)="togglePlayback(selectedContent)"
+        size="large"
+      ></p-button>
+      <p-button
+        styleClass="ml-3"
+        label="Ratings"
+        icon="pi pi-star"
+        (onClick)="showRatings(selectedContent.contentId)"
+        size="large"
+      ></p-button>
+    </div>
+  </div>
+</p-dialog>
+
+<!-- Transcription Dialog -->
+<p-dialog
+  header="Song Transcription"
+  [(visible)]="transcriptionDialogVisible"
+  [modal]="true"
+  [closable]="true"
+  [style]="{ width: '70vw', maxWidth: '800px', maxHeight: '80vh' }"
+  [draggable]="false"
+  [resizable]="true"
+>
+  <div *ngIf="currentTranscription">
+    <!-- Transcription Header Info -->
+    <div class="mb-4 p-3 border-round bg-gray-50">
+      <div class="flex justify-content-between align-items-center mb-2">
+        <h4 class="m-0">
+          {{ getCurrentlyPlayingSong()?.title || 'Unknown Song' }}
+        </h4>
+        <p-chip 
+          [label]="currentTranscription.status" 
+          [class]="'status-' + currentTranscription.status.toLowerCase()"
+        ></p-chip>
+      </div>
+      <div class="text-sm text-600">
+        <div *ngIf="currentTranscription.confidence">
+          Confidence: {{ (currentTranscription.confidence * 100).toFixed(1) }}%
+        </div>
+        <div *ngIf="currentTranscription.wordCount">
+          Word Count: {{ currentTranscription.wordCount }}
+        </div>
+      </div>
+    </div>
+
+    <!-- Loading State -->
+    <div *ngIf="isLoadingTranscription" class="flex justify-center items-center py-8">
+      <p-progressSpinner strokeWidth="4"></p-progressSpinner>
+      <span class="ml-3">Loading transcription...</span>
+    </div>
+
+    <!-- Error State -->
+    <div *ngIf="transcriptionError" class="text-center py-8">
+      <i class="pi pi-exclamation-triangle text-4xl text-orange-500 mb-3"></i>
+      <p class="text-orange-600">{{ transcriptionError }}</p>
+    </div>
+
+    <!-- Transcription Content -->
+    <div *ngIf="!isLoadingTranscription && !transcriptionError && currentTranscription.status === 'COMPLETED'">
+      <!-- HTML Transcription with Styling -->
+      <div 
+        *ngIf="currentTranscription.html"
+        class="transcription-content"
+        [innerHTML]="currentTranscription.html"
+      ></div>
+      
+      <!-- Fallback Text Display -->
+      <div 
+        *ngIf="!currentTranscription.html && currentTranscription.text"
+        class="transcription-text p-3 border-round bg-white"
+        style="white-space: pre-wrap; line-height: 1.6; font-size: 14px;"
+      >
+        {{ currentTranscription.text }}
+      </div>
+    </div>
+
+    <!-- Status Messages -->
+    <div *ngIf="currentTranscription.status === 'PROCESSING'" class="text-center py-8">
+      <i class="pi pi-spin pi-spinner text-4xl text-blue-500 mb-3"></i>
+      <p class="text-blue-600">Transcription is being processed. Please check back later.</p>
+    </div>
+
+    <div *ngIf="currentTranscription.status === 'NOT_FOUND'" class="text-center py-8">
+      <i class="pi pi-file-word text-4xl text-gray-400 mb-3"></i>
+      <p class="text-600">No transcription is available for this song.</p>
+    </div>
+
+    <div *ngIf="currentTranscription.status === 'FAILED'" class="text-center py-8">
+      <i class="pi pi-times-circle text-4xl text-red-500 mb-3"></i>
+      <p class="text-red-600">
+        Transcription processing failed.
+        <span *ngIf="currentTranscription.errorMessage">
+          <br>{{ currentTranscription.errorMessage }}
+        </span>
+      </p>
+    </div>
+  </div>
+
+  <!-- Dialog Footer -->
+  <div class="flex justify-end pt-4 mt-4 border-top-1 surface-border">
+    <p-button
+      label="Close"
+      severity="secondary"
+      (onClick)="transcriptionDialogVisible = false"
+    ></p-button>
+  </div>
 </p-dialog>
 
 <p-toast></p-toast>
+
+<!-- Rate Dialog -->
+<p-dialog
+  header="Rate Content"
+  [(visible)]="rateDialogVisible"
+  [modal]="true"
+  [closable]="false"
+  [style]="{ width: '25rem' }"
+>
+  <div class="flex flex-col gap-3">
+    <p-rating [(ngModel)]="selectedRating" stars="5"></p-rating>
+    <div class="flex justify-end gap-2">
+      <p-button
+        label="Cancel"
+        severity="secondary"
+        (onClick)="rateDialogVisible = false"
+      ></p-button>
+      <p-button label="Submit" (onClick)="submitRating()"></p-button>
+    </div>
+  </div>
+</p-dialog>
+
+<!-- Subscribe Dialog - izmene za disable opcije -->
+<p-dialog
+  header="Subscribe"
+  [(visible)]="subscribeDialogVisible"
+  [modal]="true"
+  [closable]="false"
+  [style]="{ width: '25rem' }"
+>
+  <div class="flex flex-col gap-3">
+    <!-- Artist opcija -->
+    <div class="flex items-center gap-2">
+      <p-radioButton
+        name="subscribeType"
+        value="ARTIST"
+        [(ngModel)]="selectedSubscribeType"
+        inputId="artist"
+        [disabled]="
+          currentContent && isArtistSubscribed(currentContent.artistId)
+        "
+      >
+      </p-radioButton>
+      <label
+        for="artist"
+        [class.text-gray-400]="
+          currentContent && isArtistSubscribed(currentContent.artistId)
+        "
+      >
+        Artist
+        {{
+          currentContent && isArtistSubscribed(currentContent.artistId)
+            ? "(Already subscribed)"
+            : ""
+        }}
+      </label>
+    </div>
+
+    <!-- Genre opcija -->
+    <div class="flex items-center gap-2">
+      <p-radioButton
+        name="subscribeType"
+        value="GENRE"
+        [(ngModel)]="selectedSubscribeType"
+        inputId="genre"
+        [disabled]="currentContent && isGenreSubscribed(currentContent.genre)"
+      >
+      </p-radioButton>
+      <label
+        for="genre"
+        [class.text-gray-400]="
+          currentContent && isGenreSubscribed(currentContent.genre)
+        "
+      >
+        Genre
+        {{
+          currentContent && isGenreSubscribed(currentContent.genre)
+            ? "(Already subscribed)"
+            : ""
+        }}
+      </label>
+    </div>
+
+    <!-- Poruka ako su obe opcije disabled -->
+    <div
+      *ngIf="
+        currentContent &&
+        isArtistSubscribed(currentContent.artistId) &&
+        isGenreSubscribed(currentContent.genre)
+      "
+      class="text-center text-gray-500 text-sm"
+    >
+      You are already subscribed to both artist and genre.
+    </div>
+
+    <div class="flex justify-end gap-2">
+      <p-button
+        label="Cancel"
+        severity="secondary"
+        (onClick)="subscribeDialogVisible = false"
+      ></p-button>
+      <p-button
+        label="Submit"
+        [disabled]="
+          !selectedSubscribeType ||
+          (currentContent &&
+            isArtistSubscribed(currentContent.artistId) &&
+            isGenreSubscribed(currentContent.genre))
+        "
+        (onClick)="submitSubscribe()"
+      >
+      </p-button>
+    </div>
+  </div>
+</p-dialog>
+
+<p-dialog
+  header="Song Ratings"
+  [(visible)]="ratingsDialogVisible"
+  [modal]="true"
+  [closable]="true"
+  [style]="{ width: '35rem', maxHeight: '70vh' }"
+>
+  <!-- Loading spinner -->
+  <div *ngIf="loadingRatings" class="flex justify-center items-center py-8">
+    <p-progressSpinner strokeWidth="4"></p-progressSpinner>
+  </div>
+
+  <!-- Ratings list -->
+  <div *ngIf="!loadingRatings" class="ratings-container">
+    <!-- Empty state -->
+    <div
+      *ngIf="selectedContentRatings.length === 0"
+      class="text-center py-8 text-gray-500"
+    >
+      <i class="pi pi-star text-4xl mb-3"></i>
+      <p>No ratings yet for this song.</p>
+    </div>
+
+    <!-- Ratings list -->
+    <div
+      *ngIf="selectedContentRatings.length > 0"
+      class="space-y-3 max-h-96 overflow-y-auto"
+    >
+      <!-- Rating item -->
+      <div
+        *ngFor="let rating of selectedContentRatings"
+        class="flex items-center justify-between p-3 border rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors"
+      >
+        <!-- Username -->
+        <div class="flex items-center gap-3">
+          <div
+            class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-semibold"
+          >
+            {{ rating.username.charAt(0).toUpperCase() }}
+          </div>
+          <span class="font-medium text-gray-800">{{ rating.username }}</span>
+        </div>
+
+        <!-- Stars -->
+        <div class="flex items-center gap-1">
+          <i
+            *ngFor="let filled of getStarsArray(rating.stars); let i = index"
+            class="pi text-lg"
+            [class.pi-star-fill]="filled"
+            [class.pi-star]="!filled"
+            [class.text-yellow-400]="filled"
+            [class.text-gray-300]="!filled"
+          >
+          </i>
+          <span class="ml-2 text-sm text-gray-600">({{ rating.stars }}/5)</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Summary -->
+    <div *ngIf="selectedContentRatings.length > 0" class="mt-4 pt-4 border-t">
+      <div class="text-sm text-gray-600">
+        <div>Total ratings: {{ selectedContentRatings.length }}</div>
+        <div>Average: {{ getAverageRating() }}/5</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dialog footer -->
+  <div class="flex justify-end pt-4">
+    <p-button
+      label="Close"
+      severity="secondary"
+      (onClick)="ratingsDialogVisible = false"
+    >
+    </p-button>
+  </div>
+</p-dialog>

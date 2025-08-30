@@ -1,7 +1,10 @@
 import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { MessageService } from 'primeng/api';
-import { MusicContentService, MusicContent } from '../../../services/music-content/music-content-service';
+import {
+  MusicContentService,
+  MusicContent,
+} from '../../../services/music-content/music-content-service';
 import { ButtonModule } from 'primeng/button';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
 import { MessageModule } from 'primeng/message';
@@ -12,13 +15,23 @@ import { DividerModule } from 'primeng/divider';
 import { ToastModule } from 'primeng/toast';
 import { DialogModule } from 'primeng/dialog';
 import { ImageModule } from 'primeng/image';
-import { ArtistService, GetArtistsParams } from '../../../services/artists/artist-service';
+import {
+  ArtistService,
+  GetArtistsParams,
+} from '../../../services/artists/artist-service';
 import { TooltipModule } from 'primeng/tooltip';
 import { firstValueFrom, Observable } from 'rxjs';
 import { AuthService } from '../../../auth/service/auth-service';
+import { RadioButton } from 'primeng/radiobutton';
+import { NgModule } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { RatingModule } from 'primeng/rating';
+import { RatingService } from '../../../services/rating/rating-service';
+import {
+  CreateSubscriptionRequest,
+  SubscriptionsService,
+} from '../../../services/subscriptions/subscription-service';
 import { TranscriptionService, TranscriptionResponse } from '../../../services/transcription/transcription-service';
-import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
-import { TabsModule } from 'primeng/tabs';
 
 interface PlaybackState {
   isPlaying: boolean;
@@ -26,21 +39,27 @@ interface PlaybackState {
   currentContentId: string | null;
 }
 
-interface TranscriptionState {
-  [contentId: string]: {
-    data?: TranscriptionResponse;
-    loading: boolean;
-    error?: string;
-    htmlContent?: SafeHtml;
-  };
-}
-
 @Component({
   selector: 'app-view-music-content',
-  imports: [ButtonModule, TooltipModule, ProgressSpinnerModule, MessageModule, CardModule, CommonModule, ChipModule, DividerModule, ToastModule, DialogModule, ImageModule, TabsModule],
+  imports: [
+    ButtonModule,
+    TooltipModule,
+    ProgressSpinnerModule,
+    MessageModule,
+    CardModule,
+    CommonModule,
+    ChipModule,
+    DividerModule,
+    ToastModule,
+    DialogModule,
+    ImageModule,
+    RadioButton,
+    FormsModule,
+    RatingModule,
+  ],
   templateUrl: './view-music-content.html',
   styleUrl: './view-music-content.scss',
-  providers: [MessageService]
+  providers: [MessageService],
 })
 export class ViewMusicContent implements OnInit {
   musicContent: MusicContent[] = [];
@@ -55,88 +74,493 @@ export class ViewMusicContent implements OnInit {
   playbackState: PlaybackState = {
     isPlaying: false,
     currentAudio: null,
-    currentContentId: null
+    currentContentId: null,
   };
 
-  transcriptionStates: TranscriptionState = {};
+  // Transcription related properties
+  transcriptionDialogVisible = false;
+  currentTranscription: TranscriptionResponse | null = null;
+  isLoadingTranscription = false;
+  transcriptionError = '';
 
   constructor(
-    private router: Router, 
+    private router: Router,
     private messageService: MessageService,
     private artistService: ArtistService,
     private musicContentService: MusicContentService,
     private authService: AuthService,
-    private transcriptionService: TranscriptionService,
-    private sanitizer: DomSanitizer) {}
+    private ratingService: RatingService,
+    private subscriptionService: SubscriptionsService,
+    private transcriptionService: TranscriptionService
+  ) {}
 
-    ngOnInit(): void {
-        this.loadMusicContent();
+  ngOnInit(): void {
+    this.loadMusicContent();
+  }
+
+  async loadMusicContent(loadMore = false): Promise<void> {
+    if (loadMore) {
+      this.isLoadingMore = true;
+    } else {
+      this.isLoading = true;
+      this.musicContent = [];
     }
+    this.musicContentService.getAllMusicContent().subscribe({
+      next: async (response) => {
+        if (loadMore) {
+          this.musicContent = [...this.musicContent, ...response.content];
+        } else {
+          this.musicContent = response.content;
+        }
+        for (const song of this.musicContent) {
+          song.artistName = await this.getArtist(song.artistId);
+        }
 
-    async loadMusicContent(loadMore = false): Promise<void> {
-      if(loadMore) {
-        this.isLoadingMore = true;
-      } else {
-        this.isLoading = true;
-        this.musicContent = [];
-      }
+        this.hasMore = false;
+        this.isLoading = false;
+        this.isLoadingMore = false;
+        this.errorMessage = '';
+      },
+      error: (error) => {
+        this.errorMessage = error;
+        this.isLoading = false;
+        this.isLoadingMore = false;
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: this.errorMessage,
+        });
+      },
+    });
+  }
 
-      this.musicContentService.getAllMusicContent().subscribe({
-        next: async (response) => {
-          if(loadMore) {
-            this.musicContent = [...this.musicContent, ...response.content];
-          } else {
-            this.musicContent = response.content;
-          }
-          for (const song of this.musicContent) {
-            song.artistName = await this.getArtist(song.artistId);
-          }
+  navigateToCreate(): void {
+    this.router.navigate(['/dashboard/music-content/create']);
+  }
 
-          this.hasMore = false;
-          this.isLoading = false;
-          this.isLoadingMore = false;
-          this.errorMessage = '';
+  viewSongDetails(song: MusicContent): void {
+    this.selectedContent = song;
+    this.displayDialog = true;
+  }
+
+  editSong(song: MusicContent): void {
+    this.router.navigate(['/dashboard/music-content/update', song.contentId]);
+  }
+
+  isAdmin(): boolean {
+    return this.authService.isAdmin();
+  }
+
+  deleteSong(song: MusicContent): void {
+    if (confirm(`Are you sure you want to delete "${song.title}"?`)) {
+      this.musicContentService.deleteMusicContent(song.contentId).subscribe({
+        next: (response) => {
+          this.messageService.add({
+            severity: 'success',
+            summary: 'Success',
+            detail: response.message,
+          });
+          this.loadMusicContent();
         },
         error: (error) => {
-          this.errorMessage = error;
-          this.isLoading = false;
-          this.isLoadingMore = false;
+          console.error(error);
           this.messageService.add({
             severity: 'error',
             summary: 'Error',
-            detail: this.errorMessage
+            detail: error,
           });
-        }
+        },
       });
     }
+  }
 
-    navigateToCreate(): void {
-      this.router.navigate(['/dashboard/music-content/create']);
+  loadMoreMusicContent(): void {
+    this.loadMusicContent(true);
+  }
+
+  async getArtist(artistId: string): Promise<string> {
+    try {
+      const params: GetArtistsParams = { artistId: artistId };
+      const response = await firstValueFrom(
+        this.artistService.getArtists(params)
+      );
+      if (response.count > 1) {
+        return 'Unknown';
+      }
+      return response.artists[0].name;
+    } catch (error) {
+      console.error(
+        `Error fetching artist for artist with id: ${artistId} error: ${error}`
+      );
+      return 'Unknown';
+    }
+  }
+
+  getAlbum(content: MusicContent): string {
+    return content.album || 'single';
+  }
+
+  getCoverImageUrl(content: MusicContent): string {
+    return content.coverImageUrl || 'assets/images/default-cover.jpg';
+  }
+
+  async playContent(content: MusicContent): Promise<void> {
+    this.stopCurrentPlayback();
+    if (content.contentId === this.playbackState.currentContentId) {
+      this.playbackState.currentAudio?.play();
+      this.playbackState.isPlaying = true;
+      return;
+    }
+    const audio = new Audio(content.streamURL);
+
+    audio.addEventListener('canplay', () => {
+      audio.play().catch((error) => {
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: 'Failed to play audio',
+        });
+      });
+    });
+
+    audio.addEventListener('ended', () => {
+      this.resetPlaybackState();
+      this.clearTranscription();
+    });
+
+    audio.addEventListener('error', (e) => {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'Failed to load audio stream',
+      });
+      this.resetPlaybackState();
+      this.clearTranscription();
+    });
+
+    this.playbackState = {
+      isPlaying: true,
+      currentAudio: audio,
+      currentContentId: content.contentId,
+    };
+
+    // Load transcription for the currently playing song
+    await this.loadTranscription(content.contentId);
+  }
+
+  stopCurrentPlayback(): void {
+    if (this.playbackState.currentAudio) {
+      this.playbackState.currentAudio.pause();
+      this.playbackState.isPlaying = false;
+    }
+  }
+
+  resetPlaybackState(): void {
+    this.playbackState = {
+      isPlaying: false,
+      currentAudio: null,
+      currentContentId: null,
+    };
+  }
+
+
+  isCurrentlyPlaying(contentId: string): boolean {
+    return (
+      this.playbackState.isPlaying &&
+      this.playbackState.currentContentId === contentId
+    );
+  }
+
+  async togglePlayback(content: MusicContent): Promise<void> {
+    if (this.isCurrentlyPlaying(content.contentId)) {
+      this.stopCurrentPlayback();
+    } else {
+      await this.playContent(content);
+    }
+  }
+
+  // Transcription methods
+  async loadTranscription(contentId: string): Promise<void> {
+    this.isLoadingTranscription = true;
+    this.transcriptionError = '';
+    
+    try {
+      this.currentTranscription = await firstValueFrom(
+        this.transcriptionService.getTranscription(contentId, 'html')
+      );
+      
+      if (this.currentTranscription.status === 'COMPLETED' && this.currentTranscription.html) {
+        // Transcription is available and ready
+        console.log('Transcription loaded successfully');
+        
+        // Inject CSS if provided
+        if (this.currentTranscription.css) {
+          this.injectTranscriptionCSS(this.currentTranscription.css);
+        }
+      } else if (this.currentTranscription.status === 'PROCESSING') {
+        this.messageService.add({
+          severity: 'info',
+          summary: 'Transcription',
+          detail: 'Transcription is being processed. Please check back later.',
+        });
+      } else if (this.currentTranscription.status === 'NOT_FOUND') {
+        console.log('No transcription available for this content');
+      } else if (this.currentTranscription.status === 'FAILED') {
+        this.transcriptionError = this.currentTranscription.errorMessage || 'Transcription failed to process';
+      }
+    } catch (error) {
+      console.error('Error loading transcription:', error);
+      this.transcriptionError = 'Failed to load transcription';
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'Failed to load transcription',
+      });
+    } finally {
+      this.isLoadingTranscription = false;
+    }
+  }
+
+  private injectTranscriptionCSS(css: string): void {
+    // Remove any existing transcription CSS
+    const existingStyle = document.getElementById('transcription-dynamic-css');
+    if (existingStyle) {
+      existingStyle.remove();
     }
 
-    viewSongDetails(song: MusicContent): void {
-      this.selectedContent = song;
-      this.displayDialog = true;
-      // Load transcription when dialog opens
-      this.loadTranscription(song.contentId);
+    // Create and inject new CSS
+    const styleElement = document.createElement('style');
+    styleElement.id = 'transcription-dynamic-css';
+    styleElement.textContent = css;
+    document.head.appendChild(styleElement);
+  }
+
+  clearTranscription(): void {
+    this.currentTranscription = null;
+    this.transcriptionError = '';
+    this.transcriptionDialogVisible = false;
+    
+    // Remove dynamic CSS when clearing transcription
+    const existingStyle = document.getElementById('transcription-dynamic-css');
+    if (existingStyle) {
+      existingStyle.remove();
+    }
+  }
+
+  showTranscription(): void {
+    if (this.currentTranscription && this.currentTranscription.status === 'COMPLETED') {
+      this.transcriptionDialogVisible = true;
+    } else {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Transcription',
+        detail: 'No transcription available for the currently playing song.',
+      });
+    }
+  }
+
+  hasTranscription(): boolean {
+    return this.currentTranscription?.status === 'COMPLETED' && !!this.currentTranscription.html;
+  }
+
+  getCurrentlyPlayingSong(): MusicContent | null {
+    if (!this.playbackState.currentContentId) return null;
+    return this.musicContent.find(content => content.contentId === this.playbackState.currentContentId) || null;
+  }
+
+  rateDialogVisible = false;
+  subscribeDialogVisible = false;
+  currentContent: any = null;
+  selectedRating: number = 0;
+  selectedSubscribeType: string = '';
+  
+  async openRateDialog(content: any) {
+    console.log(content);
+    this.currentContent = content;
+    this.selectedRating = 0;
+
+    // Proveri da li je pesma već ocenjena
+    await this.checkCurrentSongRatingStatus(content);
+
+    // Ako je već ocenjena, prikaži poruku i ne otvaraj dialog
+    if (this.isSongRated(content.contentId)) {
+      this.messageService.add({
+        severity: 'info',
+        summary: 'Already Rated',
+        detail: 'You have already rated this song.',
+      });
+      return;
     }
 
-    editSong(song: MusicContent): void {
-      this.router.navigate(['/dashboard/music-content/update', song.contentId]);
-    }
+    this.rateDialogVisible = true;
+  }
 
-    isAdmin(): boolean {
-      return this.authService.isAdmin();
-    }
+  // TypeScript kod - dodajte ova svojstva u klasu
+  ratingsDialogVisible = false;
+  selectedContentRatings: any[] = [];
+  loadingRatings = false;
 
-    deleteSong(song: MusicContent): void {
-      if(confirm(`Are you sure you want to delete "${song.title}"?`)) {
-        this.musicContentService.deleteMusicContent(song.contentId).subscribe({
+  showRatings(contentId: string) {
+    this.loadingRatings = true;
+    this.ratingsDialogVisible = true;
+
+    this.ratingService.getRatings({ songId: contentId }).subscribe({
+      next: (ratings) => {
+        this.selectedContentRatings = ratings.ratings;
+        this.loadingRatings = false;
+      },
+      error: (error) => {
+        console.error('Error loading ratings:', error);
+        this.loadingRatings = false;
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: 'Failed to load ratings',
+        });
+      },
+    });
+  }
+  // Dodajte ovu metodu u klasu
+  getAverageRating(): string {
+    if (this.selectedContentRatings.length === 0) return '0.0';
+    const average =
+      this.selectedContentRatings.reduce((sum, r) => sum + r.stars, 0) /
+      this.selectedContentRatings.length;
+    return average.toFixed(1);
+  }
+  // Dodajte ovu helper metodu za kreiranje array-a zvezda
+  getStarsArray(rating: number): boolean[] {
+    return Array(5)
+      .fill(false)
+      .map((_, index) => index < rating);
+  }
+
+  // Dodajte ovu novu metodu
+  async checkCurrentSongRatingStatus(content: any) {
+    try {
+      const currentUsername = this.authService.getCurrentUser()?.username;
+      if (!currentUsername) return;
+
+      const isRated = await firstValueFrom(
+        this.ratingService.isRated(content.contentId)
+      );
+
+      console.log('Rating response:', isRated);
+      console.log('Rating type:', typeof isRated);
+
+      if (isRated.is_rated) {
+        this.ratedSongs.add(content.contentId);
+      } else {
+        this.ratedSongs.delete(content.contentId);
+      }
+
+      console.log('ratedSongs:', this.ratedSongs);
+    } catch (error) {
+      console.error('Error checking rating status:', error);
+    }
+  }
+
+  async openSubscribeDialog(content: any) {
+    this.currentContent = content;
+    this.selectedSubscribeType = '';
+
+    // Proveri subscription status za artist i genre
+    await this.checkCurrentContentSubscriptionStatus(content);
+
+    this.subscribeDialogVisible = true;
+  }
+  subscribedArtists = new Set<string>(); // Set ID-jeva subscribed artista
+  subscribedGenres = new Set<string>();
+  // Dodajte ove helper funkcije
+  isArtistSubscribed(artistId: string): boolean {
+    return this.subscribedArtists.has(artistId);
+  }
+
+  isGenreSubscribed(genre: string): boolean {
+    return this.subscribedGenres.has(genre);
+  }
+  ratedSongs = new Set<string>();
+  // Dodajte ovu novu metodu
+  async checkCurrentContentSubscriptionStatus(content: any) {
+    try {
+      // Proveri da li je subscribed na artista
+      const artistSubscription = await firstValueFrom(
+        this.subscriptionService.isSubscribed(
+          'ARTIST',
+          content.artistId,
+          content.artistName
+        )
+      );
+
+      if (artistSubscription.is_subscribed) {
+        this.subscribedArtists.add(content.artistId);
+      } else {
+        this.subscribedArtists.delete(content.artistId);
+      }
+
+      // Proveri da li je subscribed na žanr (samo targetName)
+      const genreSubscription = await firstValueFrom(
+        this.subscriptionService.isSubscribed('GENRE', null, content.genre)
+      );
+
+      if (genreSubscription.is_subscribed) {
+        this.subscribedGenres.add(content.genre);
+      } else {
+        this.subscribedGenres.delete(content.genre);
+      }
+    } catch (error) {
+      console.error(
+        'Error checking current content subscription status:',
+        error
+      );
+    }
+  }
+  // Dodajte ovu helper funkciju
+  isSongRated(songId: string): boolean {
+    return this.ratedSongs.has(songId);
+  }
+  submitRating() {
+    this.ratingService
+      .createRating({
+        songId: this.currentContent.contentId,
+        username: this.authService.getCurrentUser()?.username,
+        stars: this.selectedRating,
+      })
+      .subscribe({
+        next: (response) => {
+          this.messageService.add({
+            severity: 'success',
+            summary: 'Success',
+            detail: response.message,
+          });
+          this.loadMusicContent();
+        },
+        error: (error) => {
+          console.error(error);
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Error',
+            detail: error,
+          });
+        },
+      });
+    this.rateDialogVisible = false;
+  }
+
+  submitSubscribe() {
+    if (this.selectedSubscribeType == 'ARTIST') {
+      this.subscriptionService
+        .createSubscription({
+          subscriptionType: this.selectedSubscribeType,
+          targetId: this.currentContent.artistId,
+          targetName: this.currentContent.artistName,
+        })
+        .subscribe({
           next: (response) => {
             this.messageService.add({
               severity: 'success',
               summary: 'Success',
-              detail: response.message
+              detail: response.message,
             });
             this.loadMusicContent();
           },
@@ -145,183 +569,37 @@ export class ViewMusicContent implements OnInit {
             this.messageService.add({
               severity: 'error',
               summary: 'Error',
-              detail: error
+              detail: error,
             });
-          }
+          },
         });
-      }
-    }
-
-    loadMoreMusicContent(): void {
-      this.loadMusicContent(true);
-    }
-
-    async getArtist(artistId: string): Promise<string> {
-      try {
-        const params: GetArtistsParams = {"artistId": artistId}
-        const response = await firstValueFrom(this.artistService.getArtists(params));
-        if (response.count > 1) { 
-          return 'Unknown';
-        }
-        return response.artists[0].name;
-      }catch(error) {
-        console.error(`Error fetching artist for artist with id: ${artistId} error: ${error}`);
-        return 'Unknown';
-      }
-    }
-
-    getAlbum(content: MusicContent): string {
-      return content.album || 'single';
-    }
-
-    getCoverImageUrl(content: MusicContent): string {
-      return content.coverImageUrl || 'assets/images/default-cover.jpg';
-    }
-
-    playContent(content: MusicContent): void {
-      this.stopCurrentPlayback();
-      if(content.contentId === this.playbackState.currentContentId) {
-        this.playbackState.currentAudio?.play();
-        this.playbackState.isPlaying = true;
-        return;
-      }
-      const audio = new Audio(content.streamURL);
-
-      audio.addEventListener('canplay', () => {
-        audio.play().catch(error => {
-          this.messageService.add({
-            severity: 'error',
-            summary: 'Error',
-            detail: 'Failed to play audio'
-          });
+    } else {
+      this.subscriptionService
+        .createSubscription({
+          subscriptionType: this.selectedSubscribeType,
+          targetId: 'undefined',
+          targetName: this.currentContent.genre,
+        })
+        .subscribe({
+          next: (response) => {
+            this.messageService.add({
+              severity: 'success',
+              summary: 'Success',
+              detail: response.message,
+            });
+            this.loadMusicContent();
+          },
+          error: (error) => {
+            console.error(error);
+            this.messageService.add({
+              severity: 'error',
+              summary: 'Error',
+              detail: error,
+            });
+          },
         });
-      });
-
-      audio.addEventListener('ended', () => {
-        this.resetPlaybackState();
-      });
-
-      audio.addEventListener('error', (e) => {
-        this.messageService.add({
-          severity: 'error',
-          summary: 'Error',
-          detail: 'Failed to load audio stream'
-        });
-        this.resetPlaybackState();
-      });
-
-      this.playbackState = {
-        isPlaying: true,
-        currentAudio: audio,
-        currentContentId: content.contentId
-      };
-
-      // Load transcription when playing starts
-      this.loadTranscription(content.contentId);
     }
 
-    stopCurrentPlayback(): void {
-      if(this.playbackState.currentAudio) {
-        this.playbackState.currentAudio.pause();
-        this.playbackState.isPlaying = false;
-      }
-    }
-
-    resetPlaybackState(): void {
-      this.playbackState = {
-        isPlaying: false,
-        currentAudio: null,
-        currentContentId: null
-      };
-    }
-
-    isCurrentlyPlaying(contentId: string): boolean {
-      return this.playbackState.isPlaying && this.playbackState.currentContentId === contentId;
-    }
-
-    togglePlayback(content: MusicContent): void {
-      if (this.isCurrentlyPlaying(content.contentId)) {
-        this.stopCurrentPlayback();
-      }
-      else {
-        this.playContent(content);
-      }
-    }
-
-    // Transcription methods
-    loadTranscription(contentId: string): void {
-      // Don't reload if already loading or loaded
-      if (this.transcriptionStates[contentId]) {
-        return;
-      }
-
-      this.transcriptionStates[contentId] = {
-        loading: true
-      };
-
-      this.transcriptionService.getTranscription(contentId, 'html').subscribe({
-        next: (response) => {
-          this.transcriptionStates[contentId] = {
-            loading: false,
-            data: response
-          };
-
-          // Sanitize HTML content if available
-          if (response.html) {
-            this.transcriptionStates[contentId].htmlContent = this.sanitizer.bypassSecurityTrustHtml(response.html);
-          }
-
-          // Inject CSS if provided
-          if (response.css) {
-            this.injectTranscriptionStyles(response.css);
-          }
-        },
-        error: (error) => {
-          console.error('Error loading transcription:', error);
-          this.transcriptionStates[contentId] = {
-            loading: false,
-            error: 'Failed to load transcription'
-          };
-        }
-      });
-    }
-
-    getTranscriptionState(contentId: string) {
-      return this.transcriptionStates[contentId] || { loading: false };
-    }
-
-    hasTranscription(contentId: string): boolean {
-      const state = this.transcriptionStates[contentId];
-      return state?.data?.status === 'COMPLETED' && !!state.data.html;
-    }
-
-    isTranscriptionLoading(contentId: string): boolean {
-      return this.transcriptionStates[contentId]?.loading || false;
-    }
-
-    getTranscriptionError(contentId: string): string | undefined {
-      return this.transcriptionStates[contentId]?.error;
-    }
-
-    getTranscriptionHtml(contentId: string): SafeHtml | undefined {
-      return this.transcriptionStates[contentId]?.htmlContent;
-    }
-
-    private injectTranscriptionStyles(css: string): void {
-      // Check if styles are already injected
-      if (document.getElementById('transcription-styles')) {
-        return;
-      }
-
-      const style = document.createElement('style');
-      style.id = 'transcription-styles';
-      style.textContent = css;
-      document.head.appendChild(style);
-    }
-
-    retryTranscription(contentId: string): void {
-      // Clear existing state and retry
-      delete this.transcriptionStates[contentId];
-      this.loadTranscription(contentId);
-    }
+    this.subscribeDialogVisible = false;
+  }
 }

@@ -34,6 +34,12 @@
             <span class="text-3xl">Discover</span>
         </ng-template>
     </p-button>
+    <p-button styleClass="w-full justify-content-left pl-3 h-3rem mb-2" [text]="true"
+        [routerLink]="'/dashboard/subscriptions'">
+        <ng-template pTemplate="content">
+            <span class="text-3xl">My Subscriptions</span>
+        </ng-template>
+    </p-button>
     <div class="p-4 border-top-1 surface-border mt-auto">
         <p-button label="Logout" icon="pi pi-sign-out" styleClass="w-full" severity="secondary" (onClick)="logout()">
         </p-button>
