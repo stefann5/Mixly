@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewEncapsulation } from '@angular/core';
 import { Router } from '@angular/router';
 import { MessageService } from 'primeng/api';
 import {
@@ -60,6 +60,7 @@ interface PlaybackState {
   templateUrl: './view-music-content.html',
   styleUrl: './view-music-content.scss',
   providers: [MessageService],
+  encapsulation:ViewEncapsulation.None
 })
 export class ViewMusicContent implements OnInit {
   musicContent: MusicContent[] = [];
