@@ -1,0 +1,308 @@
+<div class="create-album-container p-4">
+  <p-toast></p-toast>
+
+  <!-- Back Button -->
+  <div class="mb-4">
+    <p-button
+      label="Back to Music Content"
+      icon="pi pi-arrow-left"
+      severity="secondary"
+      (onClick)="goBack()"
+      class="mb-3"
+    ></p-button>
+  </div>
+
+  <!-- Album Form Card -->
+  <p-card>
+    <ng-template pTemplate="header">
+      <div class="card-header p-4">
+        <h2 class="text-2xl font-bold mb-0">Create New Album</h2>
+        <p class="text-600 mt-2">Fill in the album details and add songs to create a complete album</p>
+      </div>
+    </ng-template>
+
+    <!-- Album Basic Info Form -->
+    <form [formGroup]="albumForm" class="mb-4">
+      <!-- Album Title -->
+      <div class="mb-4">
+        <label for="albumTitle" class="block mb-2 font-medium">
+          Album Title <span class="text-red-500 ml-1">*</span>
+        </label>
+        <input
+          pInputText
+          id="albumTitle"
+          formControlName="title"
+          placeholder="Enter album title"
+          [class.ng-invalid]="isAlbumFieldInvalid('title')"
+          class="w-full"
+        />
+        <small 
+          class="text-red-500 block mt-1 text-sm" 
+          *ngIf="isAlbumFieldInvalid('title')"
+        >
+          {{ getAlbumFieldError('title') }}
+        </small>
+      </div>
+
+      <!-- Artist -->
+      <div class="mb-4">
+        <label for="artistId" class="block mb-2 font-medium">
+          Artist <span class="text-red-500 ml-1">*</span>
+        </label>
+        <p-select
+          [options]="artistOptions"
+          formControlName="artistId"
+          placeholder="Choose artist"
+          optionLabel="label"
+          optionValue="value"
+          [class.ng-invalid]="isAlbumFieldInvalid('artistId')"
+          class="w-full"
+        ></p-select>
+        <small 
+          class="text-red-500 block mt-1 text-sm" 
+          *ngIf="isAlbumFieldInvalid('artistId')"
+        >
+          {{ getAlbumFieldError('artistId') }}
+        </small>
+      </div>
+
+      <!-- Genre -->
+      <div class="mb-4">
+        <label for="genre" class="block mb-2 font-medium">
+          Genre <span class="text-red-500 ml-1">*</span>
+        </label>
+        <p-select
+          [options]="genreOptions"
+          formControlName="genre"
+          placeholder="Choose album genre"
+          optionLabel="label"
+          optionValue="value"
+          [class.ng-invalid]="isAlbumFieldInvalid('genre')"
+          class="w-full"
+        ></p-select>
+        <small 
+          class="text-red-500 block mt-1 text-sm" 
+          *ngIf="isAlbumFieldInvalid('genre')"
+        >
+          {{ getAlbumFieldError('genre') }}
+        </small>
+      </div>
+    </form>
+
+    <p-divider></p-divider>
+
+    <!-- Songs Section -->
+    <div class="songs-section">
+      <div class="flex justify-content-between align-items-center mb-4">
+        <h3 class="text-xl font-semibold mb-0">Album Songs</h3>
+        <p-button
+          label="Add Song"
+          icon="pi pi-plus"
+          (onClick)="toggleSongForm()"
+          [severity]="showSongForm ? 'danger' : 'success'"
+          [outlined]="showSongForm"
+        ></p-button>
+      </div>
+
+      <!-- Added Songs List -->
+      <div *ngIf="albumSongs.length > 0" class="mb-4">
+        <h4 class="mb-3">Songs in Album ({{ albumSongs.length }})</h4>
+        <div class="grid">
+          <div 
+            *ngFor="let song of albumSongs; let i = index" 
+            class="col-12 md:col-6 lg:col-4"
+          >
+            <p-card styleClass="mb-3">
+              <div class="flex align-items-center gap-3">
+                <div class="flex-shrink-0">
+                  <div class="w-3rem h-3rem bg-primary-100 border-round flex align-items-center justify-content-center">
+                    <i class="pi pi-music text-primary text-xl"></i>
+                  </div>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="font-semibold truncate">{{ song.title }}</div>
+                  <div class="text-sm text-600 truncate">{{ song.genre || 'No genre' }}</div>
+                  <div class="text-xs text-500">{{ formatFileSize(song.audioFile.size) }}</div>
+                </div>
+                <div class="flex-shrink-0">
+                  <p-button
+                    icon="pi pi-times"
+                    severity="danger"
+                    size="small"
+                    [text]="true"
+                    (onClick)="removeSong(i)"
+                    pTooltip="Remove song"
+                  ></p-button>
+                </div>
+              </div>
+            </p-card>
+          </div>
+        </div>
+      </div>
+
+      <!-- Empty State -->
+      <div *ngIf="albumSongs.length === 0" class="text-center py-6 text-600">
+        <i class="pi pi-music text-4xl mb-3 block"></i>
+        <p>No songs added yet. Click "Add Song" to start building your album.</p>
+      </div>
+
+      <!-- Add Song Form -->
+      <p-card *ngIf="showSongForm" styleClass="mt-4 border-primary">
+        <ng-template pTemplate="header">
+          <div class="flex justify-content-between align-items-center p-3">
+            <h4 class="mb-0">Add New Song</h4>
+            <p-button
+              icon="pi pi-times"
+              severity="secondary"
+              size="small"
+              [text]="true"
+              (onClick)="closeSongForm()"
+              pTooltip="Close form"
+            ></p-button>
+          </div>
+        </ng-template>
+
+        <form [formGroup]="songForm" class="song-form">
+          <!-- Song Title -->
+          <div class="mb-4">
+            <label for="songTitle" class="block mb-2 font-medium">
+              Song Title <span class="text-red-500 ml-1">*</span>
+            </label>
+            <input
+              pInputText
+              id="songTitle"
+              formControlName="title"
+              placeholder="Enter song title"
+              [class.ng-invalid]="isSongFieldInvalid('title')"
+              class="w-full"
+            />
+            <small 
+              class="text-red-500 block mt-1 text-sm" 
+              *ngIf="isSongFieldInvalid('title')"
+            >
+              {{ getSongFieldError('title') }}
+            </small>
+          </div>
+
+          <!-- Song Genre (optional, can differ from album) -->
+          <div class="mb-4">
+            <label for="songGenre" class="block mb-2 font-medium">Song Genre</label>
+            <p-select
+              [options]="genreOptions"
+              formControlName="genre"
+              placeholder="Choose song genre (optional, defaults to album genre)"
+              optionLabel="label"
+              optionValue="value"
+              class="w-full"
+            ></p-select>
+            <small class="block mt-1 text-sm text-600">
+              Leave empty to use album genre ({{ getSelectedAlbumGenre() }})
+            </small>
+          </div>
+
+          <!-- Audio File -->
+          <div class="mb-4">
+            <label class="block mb-2 font-medium">
+              Audio File <span class="text-red-500 ml-1">*</span>
+            </label>
+            <p-fileUpload
+              mode="basic"
+              name="audioFile"
+              accept="audio/*"
+              [maxFileSize]="10485760"
+              (onSelect)="onSongAudioSelect($event)"
+              (onRemove)="onSongAudioRemove()"
+              chooseLabel="Choose Audio File"
+              class="w-full"
+              [auto]="false"
+            ></p-fileUpload>
+            <small class="block mt-2 text-sm text-gray-600">
+              Supported formats: MP3, WAV, M4A, OGG, AAC, FLAC (max 10MB)
+            </small>
+            <div class="flex items-center gap-3 mt-3 p-3 bg-gray-100 rounded border-l-4 border-success" *ngIf="currentSongAudio">
+              <i class="pi pi-music text-success"></i>
+              <span class="flex-1 text-sm">{{ currentSongAudio.name }}</span>
+              <button 
+                type="button" 
+                pButton 
+                icon="pi pi-times" 
+                class="p-button-text p-button-danger p-button-sm"
+                (click)="onSongAudioRemove()"
+              ></button>
+            </div>
+          </div>
+
+          <!-- Song Cover Image (optional) -->
+          <div class="mb-4">
+            <label class="block mb-2 font-medium">Song Cover Image</label>
+            <p-fileUpload
+              mode="basic"
+              name="songCoverImage"
+              accept="image/*"
+              [maxFileSize]="5242880"
+              (onSelect)="onSongCoverSelect($event)"
+              (onRemove)="onSongCoverRemove()"
+              chooseLabel="Choose Song Cover"
+              class="w-full"
+              [auto]="false"
+            ></p-fileUpload>
+            <small class="block mt-2 text-sm text-gray-600">
+              Optional. Leave empty to use album cover. Supported: JPEG, PNG, WEBP (max 5MB)
+            </small>
+            <div class="flex items-center gap-3 mt-3 p-3 bg-gray-100 rounded border-l-4 border-info" *ngIf="currentSongCover">
+              <i class="pi pi-image text-info"></i>
+              <span class="flex-1 text-sm">{{ currentSongCover.name }}</span>
+              <button 
+                type="button" 
+                pButton 
+                icon="pi pi-times" 
+                class="p-button-text p-button-danger p-button-sm"
+                (click)="onSongCoverRemove()"
+              ></button>
+            </div>
+          </div>
+        </form>
+
+        <ng-template pTemplate="footer">
+          <div class="flex justify-end gap-2">
+            <p-button
+              label="Cancel"
+              severity="secondary"
+              (onClick)="closeSongForm()"
+              [disabled]="isAddingSong"
+            ></p-button>
+            <p-button
+              label="Add Song to Album"
+              icon="pi pi-plus"
+              (onClick)="addSongToAlbum()"
+              [disabled]="!canAddSong() || isAddingSong"
+              [loading]="isAddingSong"
+            ></p-button>
+          </div>
+        </ng-template>
+      </p-card>
+    </div>
+
+    <ng-template pTemplate="footer">
+      <div class="flex justify-end gap-3 mt-4"> 
+        <p-button
+          label="Create Album"
+          icon="pi pi-check"
+          severity="success"
+          (onClick)="createAlbum()"
+          [disabled]="!canCreateAlbum() || isCreatingAlbum"
+          [loading]="isCreatingAlbum"
+        ></p-button>
+      </div>
+    </ng-template>
+  </p-card>
+
+  <!-- Loading overlay -->
+  <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" *ngIf="isCreatingAlbum">
+    <div class="bg-white p-8 rounded-lg shadow-lg text-center">
+      <p-progressSpinner strokeWidth="4"></p-progressSpinner>
+      <p class="mt-4 text-lg">Creating album...</p>
+      <small class="text-600">This may take a few moments as we process all songs</small>
+    </div>
+  </div>
+</div>

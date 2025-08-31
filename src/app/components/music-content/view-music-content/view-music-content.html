@@ -6,7 +6,7 @@
       label="Create Song"
       icon="pi pi-plus"
       *ngIf="isAdmin()"
-      (onClick)="navigateToCreate()"
+      (onClick)="showCreateOptionsDialog()"
     ></p-button>
   </div>
 
@@ -109,7 +109,8 @@
     <p-button
       label="Create First Music Content"
       icon="pi pi-plus"
-      (onClick)="navigateToCreate()"
+      *ngIf="isAdmin()"
+      (onClick)="navigateToCreateSingle()"
     ></p-button>
   </p-card>
 
@@ -609,3 +610,41 @@
     </p-button>
   </div>
 </p-dialog>
+
+<!-- Create Options Dialog -->
+ <p-dialog header="Choose Content Type"
+           [(visible)]="createOptionsDialogVisible"
+           [modal]="true"
+           [closable]="true"
+           [style]="{width: '400px'}"
+           [draggable]="false"
+           [resizable]="false">
+    <div class="flex flex-column gap-4 p-3">
+      <div class="text-center mb-3">
+        <p>What would you like to create?</p>
+      </div>
+
+      <div class="flex gap-3">
+        <div class="flex-1 text-center">
+          <p-button label="Single"
+                    icon="pi pi-music"
+                    severity="info"
+                    class="w-full"
+                    size="large"
+                    (onClick)="navigateToCreateSingle()">
+          </p-button>
+          <small class="block text-center mt-2 text-600">Create a single song</small>
+        </div>
+        <div class="flex-1 text-center">
+          <p-button label="Album"
+                    icon="pi pi-disc"
+                    severity="success"
+                    class="w-full"
+                    size="large"
+                    (onClick)="navigateToCreateAlbum()">
+          </p-button>
+          <small class="block text-center mt-2 text-600">Create an album</small>
+        </div>
+      </div>
+    </div>      
+  </p-dialog>
