@@ -135,8 +135,11 @@ export class ViewMusicContent implements OnInit {
     });
   }
 
-  navigateToCreate(): void {
+  navigateToCreateSingle(): void {
     this.router.navigate(['/dashboard/music-content/create']);
+  }
+  navigateToCreateAlbum(): void {
+    this.router.navigate(['/dashboard/album/create']);
   }
 
   viewSongDetails(song: MusicContent): void {
@@ -744,5 +747,10 @@ private async playAudio(content: MusicContent): Promise<void> {
     }
 
     this.subscribeDialogVisible = false;
+  }
+
+  createOptionsDialogVisible = false;
+  showCreateOptionsDialog() {
+    this.createOptionsDialogVisible = true;
   }
 }

@@ -11,6 +11,7 @@ import { CreateMusicContent } from './components/music-content/create-music-cont
 import { UpdateMusicContent } from './components/music-content/update-music-content/update-music-content';
 import { Discover } from './components/discover/discover';
 import { ForYou } from './components/for-you/for-you';
+import { CreateAlbum } from './components/album/create-album/create-album';
 
 // export const routes: Routes = [
 //     {
@@ -78,7 +79,7 @@ export const routes: Routes = [
         // data: { role: 'admin' } // Uncomment if you want route-level admin check
     },
       { path: 'discover', component: Discover, canActivate: [AuthGuard]},
-
+      { path: 'album/create', component: CreateAlbum, canActivate: [AuthGuard], data: {role: 'admin'}},
       // { path: '', redirectTo: 'view-artists', pathMatch: 'full' } // Default dashboard route
     ]
   },

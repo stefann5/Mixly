@@ -1,0 +1,73 @@
+.create-album-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  
+  .card-header {
+    border-bottom: 1px solid var(--surface-border);
+    
+    h2 {
+      color: var(--primary-color);
+    }
+  }
+
+  .songs-section {
+    .song-form {
+      .form-field {
+        margin-bottom: 1rem;
+      }
+    }
+  }
+
+  // Song cards in album
+  .song-card {
+    transition: all 0.3s ease;
+    
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+  }
+
+  // File upload styling
+  ::ng-deep {
+    .p-fileupload-basic {
+      .p-fileupload-choose {
+        width: 100%;
+      }
+    }
+  }
+
+  // Loading overlay
+  .loading-overlay {
+    backdrop-filter: blur(2px);
+  }
+
+  // Animation for adding songs
+  .album-song {
+    animation: slideInFromRight 0.3s ease-out;
+  }
+
+  @keyframes slideInFromRight {
+    from {
+      opacity: 0;
+      transform: translateX(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  // Responsive adjustments
+  @media (max-width: 768px) {
+    padding: 1rem;
+    
+    .grid .col-12 {
+      padding: 0.5rem;
+    }
+    
+    .flex.gap-3 {
+      gap: 0.5rem !important;
+    }
+  }
+}
