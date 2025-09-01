@@ -32,6 +32,8 @@ import {
   SubscriptionsService,
 } from '../../../services/subscriptions/subscription-service';
 import { TranscriptionService, TranscriptionResponse } from '../../../services/transcription/transcription-service';
+import { OfflineService } from '../../../services/offline/offline-service';
+import { content } from '@primeuix/themes/aura/accordion';
 
 interface PlaybackState {
   isPlaying: boolean;
@@ -92,11 +94,25 @@ export class ViewMusicContent implements OnInit {
     private authService: AuthService,
     private ratingService: RatingService,
     private subscriptionService: SubscriptionsService,
-    private transcriptionService: TranscriptionService
+    private transcriptionService: TranscriptionService,
+    private offlineService: OfflineService
   ) {}
+
+  downloadedSongs = new Set<string>();
+  isDownloading = new Set<string>();
 
   ngOnInit(): void {
     this.loadMusicContent();
+    this.loadOfflineStatus();
+  }
+
+  async loadOfflineStatus(): Promise<void> {
+    try {
+      const offlineContent = await this.offlineService.getAllOfflineContent();
+      this.downloadedSongs = new Set(offlineContent.map(item => item.contentId));
+    } catch (error) {
+      console.error('Error loading offline status', error);
+    }
   }
 
   async loadMusicContent(loadMore = false): Promise<void> {
@@ -230,8 +246,31 @@ private async playAudio(content: MusicContent): Promise<void> {
     this.playbackState.isPlaying = true;
     return;
   }
+  let audio: HTMLAudioElement;
+  const isOffline = this.isDownloaded(content);
 
-  const audio = new Audio(content.streamURL);
+  if(isOffline) {
+    try {
+      const offlineContent = await this.offlineService.getOfflineContent(content.contentId);
+      if(offlineContent) {
+        audio = new Audio(offlineContent.audioURL);
+        console.log('Playing music offline');
+      } else {
+        console.log('Playing music online because it failed offline');
+        audio = new Audio(content.streamURL);
+        this.downloadedSongs.delete(content.contentId); //If it failed it means offline content not available so removing it from the set
+      }
+    } catch(error) {
+      console.log('Playing music online because error came up while traying to play it offline');
+      console.error('Error loading offline content: ', error);
+      audio = new Audio(content.streamURL);
+      this.downloadedSongs.delete(content.contentId);
+    }
+  }
+  else {
+    console.log('Playing music online');
+    audio = new Audio(content.streamURL);
+  }
 
   audio.addEventListener('canplay', () => {
     audio.play().catch(() => {
@@ -752,5 +791,45 @@ private async playAudio(content: MusicContent): Promise<void> {
   createOptionsDialogVisible = false;
   showCreateOptionsDialog() {
     this.createOptionsDialogVisible = true;
+  }
+  
+  downloadSong(content: MusicContent) {
+    if(this.isDownloading.has(content.contentId)) {
+      return; //Song is already downloading
+    }
+    this.isDownloading.add(content.contentId);
+    this.offlineService.downloadForOffline(content.contentId, content.streamURL, content.title, content.artistName, content.coverImageUrl).subscribe({
+      next: (response) => {
+        this.downloadedSongs.add(content.contentId);
+        this.isDownloading.delete(content.contentId);
+
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Success',
+          detail: `${content.title} is now available offline`
+        });
+      },
+      error: (error) => {
+        this.isDownloading.delete(content.contentId);
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: `Failed to download ${content.title}: ${error.message}`
+        });
+      }
+    });
+  }
+
+  isDownloaded(content: MusicContent): boolean {
+    return this.downloadedSongs.has(content.contentId);
+  }
+
+  downloadToFileSystem(content: MusicContent): void {
+    const filename = `${content.artistName} - ${content.title}.mp3`;
+    this.offlineService.downloadToFileSystem(content.contentId, filename, content.streamURL);
+  }
+
+  isDownloadingContent(contentId: string): boolean {
+    return this.isDownloading.has(contentId);
   }
 }
