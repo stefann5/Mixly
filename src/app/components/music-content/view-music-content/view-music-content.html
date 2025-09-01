@@ -242,6 +242,23 @@
             pTooltip="Subscribe"
             tooltipPosition="top"
           ></p-button>
+          <p-button
+            icon="pi pi-arrow-circle-down"
+            severity="info"
+            size="small"
+            *ngIf="!isDownloaded(content)"
+            (onClick)="downloadSong(content)"
+            [loading]="isDownloadingContent(content.contentId)"
+            [disabled]="isDownloadingContent(content.contentId)"
+            pTooltip="Mark for Offline"
+            tooltipPosition="top"></p-button>
+            <p-button 
+              icon="pi pi-download"
+              severity="help"
+              size="small"
+              (onClick)="downloadToFileSystem(content)"
+              pTooltip="Download File"
+              tooltipPosition="top"></p-button>
         </div>
       </p-card>
     </div>
