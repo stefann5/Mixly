@@ -34,6 +34,7 @@ import { DialogModule } from 'primeng/dialog';
 import { RatingModule } from 'primeng/rating';
 import { RatingService } from '../../services/rating/rating-service';
 import { SubscriptionsService } from '../../services/subscriptions/subscription-service';
+import { AuthService, User } from '../../auth/service/auth-service';
 
 interface DropdownOption {
   label: string;
@@ -149,14 +150,17 @@ export class Discover implements OnInit {
     private messageService: MessageService,
     private musicContentService: MusicContentService,
     private ratingService: RatingService,
-    private subscriptionService: SubscriptionsService
+    private subscriptionService: SubscriptionsService,
+    private authService: AuthService
   ) {}
 
   ngOnInit() {
     this.checkSubscriptions();
     this.loadGenres();
   }
-
+  isAdmin(): boolean {
+    return this.authService.isAdmin();
+  }
   loadGenres() {
     this.loadingGenres = true;
     this.discoverService.getGenres().subscribe({
@@ -403,55 +407,51 @@ export class Discover implements OnInit {
     return 'Content';
   }
 
+  playContent(content: MusicContent): void {
+    this.musicContentService.addToHistory(content.contentId).subscribe({
+      next: async () => {
+        this.stopCurrentPlayback();
+        if (content.contentId === this.playbackState.currentContentId) {
+          this.playbackState.currentAudio?.play();
+          this.playbackState.isPlaying = true;
+          return;
+        }
+        const audio = new Audio(content.streamURL);
 
-playContent(content: MusicContent): void {
-
-  this.musicContentService.addToHistory(content.contentId).subscribe({
-    next: async () => {
-      this.stopCurrentPlayback();
-    if (content.contentId === this.playbackState.currentContentId) {
-      this.playbackState.currentAudio?.play();
-      this.playbackState.isPlaying = true;
-      return;
-    }
-    const audio = new Audio(content.streamURL);
-
-    audio.addEventListener('canplay', () => {
-      audio.play().catch((error) => {
-        this.messageService.add({
-          severity: 'error',
-          summary: 'Error',
-          detail: 'Failed to play audio',
+        audio.addEventListener('canplay', () => {
+          audio.play().catch((error) => {
+            this.messageService.add({
+              severity: 'error',
+              summary: 'Error',
+              detail: 'Failed to play audio',
+            });
+          });
         });
-      });
+
+        audio.addEventListener('ended', () => {
+          this.resetPlaybackState();
+        });
+
+        audio.addEventListener('error', (e) => {
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Error',
+            detail: 'Failed to load audio stream',
+          });
+          this.resetPlaybackState();
+        });
+
+        this.playbackState = {
+          isPlaying: true,
+          currentAudio: audio,
+          currentContentId: content.contentId,
+        };
+      },
+      error: async (err) => {
+        // Ako padne upis istorije, svejedno puštamo pesmu
+        console.error('Failed to add to history', err);
+      },
     });
-
-    audio.addEventListener('ended', () => {
-      this.resetPlaybackState();
-    });
-
-    audio.addEventListener('error', (e) => {
-      this.messageService.add({
-        severity: 'error',
-        summary: 'Error',
-        detail: 'Failed to load audio stream',
-      });
-      this.resetPlaybackState();
-    });
-
-    this.playbackState = {
-      isPlaying: true,
-      currentAudio: audio,
-      currentContentId: content.contentId,
-    };
-    },
-    error: async (err) => {
-      // Ako padne upis istorije, svejedno puštamo pesmu
-      console.error('Failed to add to history', err);
-    }
-  });
-
-    
   }
 
   // Music playback functionality from ViewMusicContent
@@ -674,8 +674,8 @@ playContent(content: MusicContent): void {
       console.error('Error checking rating status:', error);
     }
   }
-isArtistSubscribed: { [key: string]: boolean } = {};
-isGenreSubscribed: boolean = false;
+  isArtistSubscribed: { [key: string]: boolean } = {};
+  isGenreSubscribed: boolean = false;
   subscribeArtist(artist: Artist) {
     this.subscriptionService
       .createSubscription({
@@ -707,7 +707,7 @@ isGenreSubscribed: boolean = false;
   }
 
   subscribeGenre(genre: string | undefined) {
-    if (!genre){
+    if (!genre) {
       return;
     }
     this.subscriptionService
@@ -739,40 +739,42 @@ isGenreSubscribed: boolean = false;
       });
   }
   checkSubscriptions() {
-  // Proveri pretplatu na žanr
-  if (this.selectedGenre) {
-    this.checkGenreSubscription(this.selectedGenre);
+    // Proveri pretplatu na žanr
+    if (this.selectedGenre) {
+      this.checkGenreSubscription(this.selectedGenre);
+    }
+
+    // Proveri pretplate na sve izvođače
+    if (this.artists && this.artists.length > 0) {
+      this.artists.forEach((artist) => {
+        this.checkArtistSubscription(artist);
+      });
+    }
   }
 
-  // Proveri pretplate na sve izvođače
-  if (this.artists && this.artists.length > 0) {
-    this.artists.forEach(artist => {
-      this.checkArtistSubscription(artist);
+  checkGenreSubscription(genre: string) {
+    this.subscriptionService.isSubscribed('GENRE', null, genre).subscribe({
+      next: (response) => {
+        this.isGenreSubscribed = response.is_subscribed;
+      },
+      error: (error) => {
+        console.error('Error checking genre subscription:', error);
+        this.isGenreSubscribed = false;
+      },
     });
   }
-}
 
-checkGenreSubscription(genre: string) {
-  this.subscriptionService.isSubscribed('GENRE', null, genre).subscribe({
-    next: (response) => {
-      this.isGenreSubscribed = response.is_subscribed; 
-    },
-    error: (error) => {
-      console.error('Error checking genre subscription:', error);
-      this.isGenreSubscribed = false;
-    }
-  });
-}
-
-checkArtistSubscription(artist: Artist) {
-  this.subscriptionService.isSubscribed('ARTIST', artist.artistId, artist.name).subscribe({
-    next: (response) => {
-      this.isArtistSubscribed[artist.artistId] = response.is_subscribed; 
-    },
-    error: (error) => {
-      console.error('Error checking artist subscription:', error);
-      this.isArtistSubscribed[artist.artistId] = false;
-    }
-  });
-}
+  checkArtistSubscription(artist: Artist) {
+    this.subscriptionService
+      .isSubscribed('ARTIST', artist.artistId, artist.name)
+      .subscribe({
+        next: (response) => {
+          this.isArtistSubscribed[artist.artistId] = response.is_subscribed;
+        },
+        error: (error) => {
+          console.error('Error checking artist subscription:', error);
+          this.isArtistSubscribed[artist.artistId] = false;
+        },
+      });
+  }
 }

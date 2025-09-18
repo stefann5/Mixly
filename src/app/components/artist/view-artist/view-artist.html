@@ -123,12 +123,16 @@
             tooltipPosition="top"
           ></p-button>
 
-          <p-button
+          @if (user?.role != 'admin'){
+            <p-button
             [icon]="'pi pi-bell'"
             size="small"
+            *ngIf="!isAdmin()"
             (onClick)="subscribeToArtist(artist)"
             tooltipPosition="top"
           ></p-button>
+          }
+          
         </div>
       </p-card>
     </div>

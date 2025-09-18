@@ -161,8 +161,8 @@ export class ForYou implements OnInit {
     this.loadingAlbums = true;
     this.discoverService.getFeed().subscribe({
       next: (response) => {
-        this.albums = response.content
-        console.log(this.albums)
+        this.albums = response
+        console.log(response)
         this.loadingAlbums = false;
       },
       error: (error) => {

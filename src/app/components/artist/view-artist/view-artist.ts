@@ -19,7 +19,7 @@ import {
   Artist,
   ArtistService,
 } from '../../../services/artists/artist-service';
-import { AuthService } from '../../../auth/service/auth-service';
+import { AuthService, User } from '../../../auth/service/auth-service';
 import { SubscriptionsService } from '../../../services/subscriptions/subscription-service';
 
 @Component({
@@ -47,6 +47,7 @@ export class ViewArtists implements OnInit {
   errorMessage = '';
   hasMore = false;
   lastKey = '';
+  public user: User | null = null;
 
   constructor(
     private router: Router,
@@ -58,6 +59,13 @@ export class ViewArtists implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    this.authService.currentUser$.subscribe(
+      {
+        next: (currentUser) => {
+          this.user = currentUser;
+        }
+      }
+    );
     this.loadArtists();
   }
 

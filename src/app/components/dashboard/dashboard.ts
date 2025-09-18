@@ -38,7 +38,9 @@ export class Dashboard {
   ngOnInit(){
     this.loadNotifications();
   }
-
+isAdmin(): boolean {
+    return this.authService.isAdmin();
+  }
 private parseJwt(token: string): any {
     const base64Url = token.split('.')[1];
     const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');

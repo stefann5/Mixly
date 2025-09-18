@@ -170,8 +170,8 @@ export class DiscoverService {
     return this.http.get<AlbumResponse>(`${this.API_BASE}/albums`, { params });
   }
   
-  getFeed(): Observable<FeedResponse> {
-    return this.http.get<FeedResponse>(`${this.MUSIC_BASE}/feed`);
+  getFeed(): Observable<Album[]> {
+    return this.http.get<Album[]>(`${this.MUSIC_BASE}/feed`);
   }
 
   /**
