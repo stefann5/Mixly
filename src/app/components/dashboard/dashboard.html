@@ -10,6 +10,7 @@
       class="p-button-rounded p-button-text"
       pTooltip="Notifikacije"
       tooltipPosition="left"
+      *ngIf="!isAdmin()"
       (onClick)="showNotifications = true">
     </p-button>
   </div>

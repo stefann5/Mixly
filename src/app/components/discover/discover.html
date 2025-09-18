@@ -68,6 +68,7 @@
             size="small"
             (onClick)="subscribeGenre(this.selectedGenre)"
             pTooltip="Subscribe"
+            *ngIf="!isAdmin()"
             tooltipPosition="top"
             pTooltip="{{
               isGenreSubscribed ? 'Already subscribed' : 'Subscribe'
@@ -157,6 +158,7 @@
                   size="small"
                   (onClick)="subscribeArtist(artist)"
                   pTooltip="Subscribe"
+                  *ngIf="!isAdmin()"
                   tooltipPosition="top"
                   pTooltip="{{
                     isArtistSubscribed[artist.artistId]
@@ -433,6 +435,7 @@
                     severity="info"
                     size="small"
                     (onClick)="openRateDialog(item)"
+                    *ngIf="!isAdmin()"
                     pTooltip="Rate"
                     [disabled]="isSongRated(item.contentId)"
                     tooltipPosition="top"
